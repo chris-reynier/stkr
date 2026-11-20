@@ -20,28 +20,29 @@ import (
 // Config is the contents of config.yaml. Fields tagged secret:"true" are
 // masked by Redacted.
 type Config struct {
-	Port                 int      `yaml:"port"`
-	Timezone             string   `yaml:"timezone"`
-	DayStart             string   `yaml:"day_start"`
-	DayEnd               string   `yaml:"day_end"`
-	CloseReminder        string   `yaml:"close_reminder"`
-	IdleGapMinutes       int      `yaml:"idle_gap_minutes"`
-	RoundingHours        float64  `yaml:"rounding_hours"`
-	OneDriveDir          string   `yaml:"onedrive_dir"`
-	PhoneInbox           string   `yaml:"phone_inbox"`
-	OpenNotebookOnSwitch bool     `yaml:"open_notebook_on_switch"`
-	MicDevice            string   `yaml:"mic_device"`
-	FFmpeg               string   `yaml:"ffmpeg"`
-	Whisper              Whisper  `yaml:"whisper"`
-	AI                   AI       `yaml:"ai"`
-	ClaudeCode           Agent    `yaml:"claude_code"`
-	GitHubCopilot        Agent    `yaml:"github_copilot"`
-	Ollama               Ollama   `yaml:"ollama"`
-	MCP                  MCP      `yaml:"mcp"`
-	AgentWindowTitle     string   `yaml:"agent_window_title"`
-	Launch               Launch   `yaml:"launch"`
-	Update               Update   `yaml:"update"`
-	AllowedOrigins       []string `yaml:"allowed_origins"`
+	Port                 int       `yaml:"port"`
+	Timezone             string    `yaml:"timezone"`
+	DayStart             string    `yaml:"day_start"`
+	DayEnd               string    `yaml:"day_end"`
+	CloseReminder        string    `yaml:"close_reminder"`
+	IdleGapMinutes       int       `yaml:"idle_gap_minutes"`
+	RoundingHours        float64   `yaml:"rounding_hours"`
+	OneDriveDir          string    `yaml:"onedrive_dir"`
+	PhoneInbox           string    `yaml:"phone_inbox"`
+	OpenNotebookOnSwitch bool      `yaml:"open_notebook_on_switch"`
+	MicDevice            string    `yaml:"mic_device"`
+	FFmpeg               string    `yaml:"ffmpeg"`
+	Whisper              Whisper   `yaml:"whisper"`
+	AI                   AI        `yaml:"ai"`
+	ClaudeCode           Agent     `yaml:"claude_code"`
+	GitHubCopilot        Agent     `yaml:"github_copilot"`
+	Ollama               Ollama    `yaml:"ollama"`
+	MCP                  MCP       `yaml:"mcp"`
+	AgentWindowTitle     string    `yaml:"agent_window_title"`
+	Launch               Launch    `yaml:"launch"`
+	Update               Update    `yaml:"update"`
+	Bookmarks            Bookmarks `yaml:"bookmarks"`
+	AllowedOrigins       []string  `yaml:"allowed_origins"`
 }
 
 // Whisper configures the local speech-to-text binary.
@@ -83,6 +84,12 @@ type Launch struct {
 	Args    []string `yaml:"args"`
 }
 
+// Bookmarks configures bookmark capture.
+type Bookmarks struct {
+	// FetchTitle downloads the page to read its title (2 s budget).
+	FetchTitle bool `yaml:"fetch_title"`
+}
+
 // Update configures the update check.
 type Update struct {
 	Check         bool   `yaml:"check"`
@@ -116,9 +123,10 @@ func Default() *Config {
 			Model:        "llama3.2",
 			BatchMinutes: 30,
 		},
-		MCP:    MCP{Enabled: true},
-		Launch: Launch{Command: "code", Args: []string{"{path}"}},
-		Update: Update{Check: true, Channel: "stable", IntervalHours: 24},
+		MCP:       MCP{Enabled: true},
+		Launch:    Launch{Command: "code", Args: []string{"{path}"}},
+		Update:    Update{Check: true, Channel: "stable", IntervalHours: 24},
+		Bookmarks: Bookmarks{FetchTitle: true},
 	}
 }
 
