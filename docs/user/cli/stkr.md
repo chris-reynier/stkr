@@ -21,6 +21,7 @@ stkr [flags]
 
 ### SEE ALSO
 
+* [stkr agents](stkr_agents.md)	 - List coding agent instances reported by the Stream Deck plugin
 * [stkr backup](stkr_backup.md)	 - Back up the database now and print the file path
 * [stkr config](stkr_config.md)	 - Show or change the configuration
 * [stkr ctx](stkr_ctx.md)	 - List and manage contexts (what time is tracked against)

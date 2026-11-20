@@ -96,6 +96,23 @@ Poll it as often as the key needs; it is cheap (cached per distinct picture).
 
 The Tempo import file of an ISO week. Response `200`, `Content-Type: text/csv; charset=utf-8`, `Content-Disposition: attachment; filename="stkr-tempo-<week>.csv"`. The header `X-STKR-Unmapped` lists the ids of contexts that have counted time but no ticket (comma-separated, empty if none); they are not in the file. The format is in [tempo-csv.md](tempo-csv.md). A malformed week gives `400` (`invalid`).
 
+### Agent routes
+
+Routes for coding agent instances. Payloads, states, ordering rules and the `next/go` results are in [agent-events.md](agent-events.md).
+
+| Route | Purpose |
+|---|---|
+| `POST /api/agents/event` | Body: one event (`instance`, `event`, `state`, `slot`, `workspace`, `window_title`, `summary`, `ts`). Response `{"instance": ..., "switched": bool}`. |
+| `POST /api/agents/sync` | Body `{"instances":[...]}`. Replaces the whole set. Response: the same as `GET /api/agents`. |
+| `GET /api/agents` | `{"instances", "counts", "unknown_workspaces", "next"}`. |
+| `GET /api/agents/next` | `{"instance": ...}`; `{"instance": null}` when there are none. |
+| `POST /api/agents/next/go` | Switch, focus or launch. Response `{"result", "instance", "switched", "message"}`. Answers within about 2 seconds (`result: "pending"` if focusing is slower). |
+| `POST /api/agents/{instance}/queue` | Queue an instance. `404` if unknown. |
+| `POST /api/agents/ack-done` | All `done` instances become `idle`. Response `{"acknowledged": n}`. |
+| `GET /img/agents.png` | 144x144 PNG, see [streamdeck-keys.md](streamdeck-keys.md). |
+
+Errors follow the table above; `invalid` (400) covers bad JSON and bad field values.
+
 ## Web UI routes
 
 The web UI is part of the same server and follows the same Host and Origin guards. It answers with HTML, not JSON, and is meant for browsers. Pages work without JavaScript.
@@ -105,6 +122,7 @@ The web UI is part of the same server and follows the same Host and Origin guard
 | `GET /` and `GET /ui/` | `303` redirect to `/ui/today` |
 | `GET /ui/today?d=YYYY-MM-DD` | Timeline, gaps and totals of a day (default today) |
 | `GET /ui/week?w=YYYY-Www` | Hours per context and day, tickets, unmapped contexts (default this week) |
+| `GET /ui/agents` | Agent instances, Go/Queue buttons, unknown workspaces |
 | `GET /ui/settings` | Contexts and configuration forms |
 | `GET /static/...` | Embedded stylesheet and HTMX |
 
@@ -119,6 +137,9 @@ Form actions are `POST` with `application/x-www-form-urlencoded`. Every one answ
 | `POST /ui/event/{id}/merge` | `other` (id of the following event) |
 | `POST /ui/event/{id}/delete` | none |
 | `POST /ui/event/{id}/confirm` | `confirmed` (`1` or `0`) |
+| `POST /ui/agents/go`, `.../queue` | `id` (instance) |
+| `POST /ui/agents/go-next`, `.../ack-done` | none |
+| `POST /ui/agents/map` | `workspace`, `context` (sets the context workdir) |
 | `POST /ui/settings/ctx` | `id`, `label`, `kind`, `tempo_ticket`, `notebook_url`, `workdir` |
 | `POST /ui/settings/ctx/{id}/edit` | `label`, `kind`, `tempo_ticket`, `notebook_url`, `workdir` |
 | `POST /ui/settings/ctx/{id}/park`, `.../activate` | none |

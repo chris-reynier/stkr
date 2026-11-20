@@ -18,6 +18,8 @@ Published:
 | [`time-reports.md`](time-reports.md) | JSON of switch, now, day, week and contexts; week CSV (v1) |
 | [`http-api.md`](http-api.md) | HTTP routes: parameters, request and response JSON, errors (v1) |
 | [`tempo-csv.md`](tempo-csv.md) | Tempo CSV columns, rounding, ticket mapping (v1) |
+| [`agent-events.md`](agent-events.md) | Agent event and sync payloads, states, state map, next-instance order (v1) |
+| [`streamdeck-keys.md`](streamdeck-keys.md) | Stream Deck key to endpoint to image table (v1) |
 
 Added with the features that introduce them:
 

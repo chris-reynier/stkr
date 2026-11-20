@@ -16,7 +16,7 @@ Status: early development (0.x). Windows first, with Linux and macOS builds.
 | Local HTTP server (`serve`): switch, stop, now and contexts API, key image, daily backup job | available |
 | Local web UI: Today, Week, Settings, Tempo CSV export (`/ui/today`) | available |
 | Stream Deck context keys and current-context image | available |
-| Stream Deck agent integration | planned |
+| Agents hub (`agents`, `/ui/agents`): next instance, window focus, agents key image | available |
 | Daily brief and close | planned |
 | Voice and phone-inbox capture | planned |
 | AI cleanup and classification (local or CLI-based) | planned |
