@@ -23,6 +23,7 @@ Published:
 | [`import-fences.md`](import-fences.md) | `stkr-brief` and `stkr-close` text blocks, fingerprints, pipe fallback (v1) |
 | [`onedrive-export.md`](onedrive-export.md) | Project log files: section ownership, atomic rewrite (v1) |
 | [`paste-helper.md`](paste-helper.md) | `POST /api/paste`: window title, Enter, errors (v1) |
+| [`phone-inbox.md`](phone-inbox.md) | Phone inbox file naming, tag rules, stability, processed folder (v1) |
 
 Added with the features that introduce them:
 
@@ -30,6 +31,5 @@ Added with the features that introduce them:
 |---|---|
 | `agent-events.md` | Agent plugin events and states |
 | `streamdeck-keys.md` | Stream Deck key to endpoint map, image states |
-| `phone-inbox.md` | File naming and tag rules for phone captures |
 | `ai-providers.md` | AI provider protocol and JSON schemas |
 | `mcp-tools.md` | MCP tool names and schemas |

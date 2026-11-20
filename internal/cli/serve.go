@@ -63,6 +63,10 @@ func newServeCmd(opts *options) *cobra.Command {
 				return err
 			})
 			runner.Add("close-reminder", time.Minute, svc.ReminderTick)
+			runner.Add("phone-inbox", 30*time.Second, func(ctx context.Context) error {
+				_, err := svc.ScanInbox(ctx)
+				return err
+			})
 			runner.Start(ctx)
 
 			srv := httpapi.New(svc, httpapi.Options{Port: realPort, AllowedOrigins: cfg.AllowedOrigins, Logger: lg})

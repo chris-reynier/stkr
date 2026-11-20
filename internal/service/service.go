@@ -12,6 +12,7 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"github.com/chris-reynier/stkr/internal/capture"
 	"github.com/chris-reynier/stkr/internal/clock"
 	"github.com/chris-reynier/stkr/internal/config"
 	"github.com/chris-reynier/stkr/internal/domain"
@@ -44,6 +45,13 @@ type Deps struct {
 	Clipboard platform.Clipboard
 	// PromptsDir holds user overrides of the prompt templates. Empty means defaults only.
 	PromptsDir string
+	// AudioDir is where recordings and converted phone audio are kept. Empty disables voice capture.
+	AudioDir string
+	// Recorder and Transcriber replace the ffmpeg and whisper defaults (tests).
+	Recorder    capture.Recorder
+	Transcriber capture.Transcriber
+	// TitleTimeout is the bookmark title fetch budget (default 2 s).
+	TitleTimeout time.Duration
 }
 
 // Service is the application facade.
@@ -61,6 +69,7 @@ type Service struct {
 	launcher   platform.Launcher
 	clipboard  platform.Clipboard
 	promptsDir string
+	capt       *captureState
 }
 
 // New builds a Service. cfg must be valid.
@@ -97,6 +106,7 @@ func New(st *store.Store, clk clock.Clock, cfg *config.Config, deps Deps) (*Serv
 		launcher:   lau,
 		clipboard:  clip,
 		promptsDir: deps.PromptsDir,
+		capt:       newCaptureState(cfg, deps),
 		st:         st,
 		clk:        clk,
 		cfg:        cfg,
@@ -249,4 +259,7 @@ func Open(ctx context.Context, dbPath string, clk clock.Clock, cfg *config.Confi
 }
 
 // Close closes the database.
-func (s *Service) Close() error { return s.st.Close() }
+func (s *Service) Close() error {
+	s.capt.stop()
+	return s.st.Close()
+}

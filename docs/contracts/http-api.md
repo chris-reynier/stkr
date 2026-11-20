@@ -136,6 +136,31 @@ Import responses (`200`) have the shape in [import-fences.md](import-fences.md#r
 
 The clipboard-based routes answer `503` `unavailable` when the system has no clipboard. `404` with `error` `window_not_found` is specific to routes that paste (`/api/paste`, `/api/close/prompt?paste=1`).
 
+### Capture routes
+
+Ideas, voice, meeting items and bookmarks. Capture is written first; transcription and title fetching never make a capture fail.
+
+| Route | Purpose |
+|---|---|
+| `POST /api/idea` | Body `{"text": "...", "tag": "pro"\|"personal", "type": "action"\|"decision"\|"note"}`; only `text` is required. Without `type`, or with `note`, it creates an idea: `201 {"idea": {...}, "created": true}`. With `action` or `decision` it creates an item with origin `meeting` for the last project tracked before the meeting (`other` if none): `201 {"item": {...}, "created": true}`; an identical item that exists returns `200` with `created: false`. Text is limited to 10,000 characters (500 for items). `tag: personal` is rejected for items. Answers well under 100 ms. |
+| `POST /api/idea/record/toggle?tag=pro` (or `personal`) | Start a voice recording, or stop the running one. Response `{"recording": true}` on start; on stop `{"recording": false, "idea": {...}}` (empty text, `audio_path` set, transcribed in the background). `503` `unavailable` when ffmpeg is missing, no audio folder exists or nothing was recorded. `400` for a bad tag, or `mic_device` unset on Windows. |
+| `POST /api/bookmark` | Body `{"url": "https://...", "tags": ["a","b"]}`. `201 {"bookmark": {...}}`. |
+| `POST /api/bookmark/from-clipboard?tags=a,b` | Same, with the first non-empty clipboard line as the URL. `503` when there is no clipboard. |
+| `GET /api/capture/health` | `{"ffmpeg": "ok"\|"missing", "whisper": "ok"\|"missing", "phone_inbox": "ok"\|"disabled"\|"error", "recording": bool}`. |
+| `GET /img/key/idea.png` | Idea key: red `IDEA` / `REC` while recording, grey otherwise. |
+| `GET /img/key/ideas-inbox.png` | Ideas inbox key: the count of new `pro` ideas (grey `0 new` when none). |
+
+Idea object: `{"id", "ts", "context_id", "tag", "raw_text", "clean_text", "title", "suggested_project", "status", "audio_path", "source", "ai_state"}`. `source` is `text`, `voice`, `phone` or `meeting`. Bookmark object: `{"id", "title", "url", "tags", "pinned", "created"}`.
+
+Only absolute `http` and `https` URLs are accepted (`400` `invalid` otherwise). A URL that is saved already returns `409`:
+
+```json
+{"error": "conflict", "message": "bookmark already exists: https://example.com/",
+ "bookmark": {"id": 3, "title": "Example", "url": "https://example.com/", "tags": [], "pinned": false, "created": "2026-11-16T09:00:00Z"}}
+```
+
+The phone inbox watcher has no route; see [phone-inbox.md](phone-inbox.md).
+
 ## Web UI routes
 
 The web UI is part of the same server and follows the same Host and Origin guards. It answers with HTML, not JSON, and is meant for browsers. Pages work without JavaScript.
@@ -146,6 +171,9 @@ The web UI is part of the same server and follows the same Host and Origin guard
 | `GET /ui/today?d=YYYY-MM-DD` | Timeline, gaps, totals, top 3, import box and items of a day (default today) |
 | `GET /ui/week?w=YYYY-Www` | Hours per context and day, tickets, unmapped contexts (default this week) |
 | `GET /ui/agents` | Agent instances, Go/Queue buttons, unknown workspaces |
+| `GET /ui/ideas?status=&tag=` | Capture form, filter, inline triage (status, project, tag, title) |
+| `GET /ui/ideas/{id}/audio` | The recording of an idea. Serves only a regular file inside the audio folder; anything else is `404`. |
+| `GET /ui/links?q=` | Bookmarks: add, search, pin, delete |
 | `GET /ui/settings` | Contexts and configuration forms |
 | `GET /static/...` | Embedded stylesheet and HTMX |
 
@@ -166,6 +194,12 @@ Form actions are `POST` with `application/x-www-form-urlencoded`. Every one answ
 | `POST /ui/agents/go`, `.../queue` | `id` (instance) |
 | `POST /ui/agents/go-next`, `.../ack-done` | none |
 | `POST /ui/agents/map` | `workspace`, `context` (sets the context workdir) |
+| `POST /ui/ideas/add` | `text`, `type` (empty, `action`, `decision`, `note`), `personal` (`1`) |
+| `POST /ui/ideas/record` | `tag` (optional): toggles voice recording |
+| `POST /ui/ideas/triage` | `id`, `status`, `project` (project context id or empty), `tag`, `title` |
+| `POST /ui/links/add` | `url`, `tags` |
+| `POST /ui/links/pin` | `id`, `pinned` (`1` or `0`) |
+| `POST /ui/links/delete` | `id` |
 | `POST /ui/settings/ctx` | `id`, `label`, `kind`, `tempo_ticket`, `notebook_url`, `workdir` |
 | `POST /ui/settings/ctx/{id}/edit` | `label`, `kind`, `tempo_ticket`, `notebook_url`, `workdir` |
 | `POST /ui/settings/ctx/{id}/park`, `.../activate` | none |

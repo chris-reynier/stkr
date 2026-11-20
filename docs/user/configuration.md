@@ -28,9 +28,10 @@ You can also edit the file by hand. Unknown keys are ignored with a warning. Inv
 | `idle_gap_minutes` | `90` | Gap after which a block is treated as idle until confirmed. |
 | `rounding_hours` | `0.25` | Rounding step applied when exporting time. Must be above 0. |
 | `onedrive_dir` | `""` | Folder for the project log files and the Start Day digest. Empty disables export. See [Daily loop](daily-loop.md). |
-| `phone_inbox` | `""` | Folder watched for phone captures. Empty disables it. |
+| `phone_inbox` | `""` | Folder watched every 30 seconds for phone captures. Empty disables it. See [Capture](capture.md). |
 | `open_notebook_on_switch` | `false` | Open a context's notebook when you switch to it. |
-| `mic_device` | `""` | Microphone name for voice capture. Empty means the default device. |
+| `mic_device` | `""` | Microphone name for voice capture. Required on Windows (DirectShow name); empty means the default device on Linux and macOS. See [Capture](capture.md). |
+| `bookmarks.fetch_title` | `true` | Download a bookmarked page (2 s limit, 512 KB) to read its title. `false` keeps the URL as the title and makes no network call. See [Bookmarks](bookmarks.md). |
 | `ffmpeg` | `ffmpeg` | Path or name of the ffmpeg program. |
 | `whisper.bin` | `whisper-cli` | Speech-to-text program. |
 | `whisper.model` | `""` | Path to the speech model file. |

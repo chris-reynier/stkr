@@ -51,6 +51,8 @@ Start Day copies the prompt; open your AI chat and paste. Close Day copies the p
 
 The full key table is in the [Stream Deck keys contract](../contracts/streamdeck-keys.md).
 
+
+
 ### Forwarding events from a plugin
 
 STKR does not detect VS Code windows itself. The plugin that does (or your hooks) forwards events. The following TypeScript sketch shows the expected behavior: a 500 ms timeout, errors ignored so the plugin never changes behavior, a full sync on start, on reconnect and every 5 minutes. Adapt the names to your plugin. `stateMap` follows the table in the [agent events contract](../contracts/agent-events.md).
