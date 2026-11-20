@@ -27,7 +27,7 @@ func (o *options) service(cmd *cobra.Command) (*service.Service, error) {
 		return nil, err
 	}
 	warn(cmd.ErrOrStderr(), warnings)
-	svc, closeFn, err := app.Open(cmd.Context(), home, cfg, app.Options{})
+	svc, closeFn, err := app.Open(cmd.Context(), home, cfg, app.Options{Updater: o.updater, Version: o.version})
 	if err != nil {
 		return nil, err
 	}

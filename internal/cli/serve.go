@@ -67,6 +67,9 @@ func newServeCmd(opts *options) *cobra.Command {
 				_, err := svc.ScanInbox(ctx)
 				return err
 			})
+			if cfg.Update.Check {
+				runner.Add("update-check", time.Duration(cfg.Update.IntervalHours)*time.Hour, svc.UpdateTick)
+			}
 			if svc.AIActive() {
 				runner.Add("ai-batch", time.Duration(cfg.AI.BatchMinutes)*time.Minute, svc.AIBatchTick)
 			} else if w := svc.AIStatusWarning(); w != "" {

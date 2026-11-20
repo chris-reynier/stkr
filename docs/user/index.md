@@ -2,7 +2,9 @@
 
 STKR is a local-first task stack manager. These pages explain how to use it.
 
+- [Install](install.md): download, unpack and run a release.
 - [Getting started](getting-started.md): build, run, and find your data.
+- [Update](update.md): check for and install new versions.
 - [Time tracking](time-tracking.md): switch contexts, read your day and week, confirm idle blocks.
 - [Contexts](contexts.md): create, change, park and activate contexts.
 - [Server](server.md): run `stkr serve`, autostart on Windows, port.

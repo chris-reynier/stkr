@@ -13,9 +13,11 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/chris-reynier/stkr/internal/app"
 	"github.com/chris-reynier/stkr/internal/config"
 	"github.com/chris-reynier/stkr/internal/domain"
 	"github.com/chris-reynier/stkr/internal/logx"
+	"github.com/chris-reynier/stkr/internal/update"
 )
 
 // Exit codes.
@@ -40,6 +42,12 @@ type options struct {
 
 	closer   io.Closer
 	closeSvc func() error
+
+	// updater and version replace the GitHub client and running version (tests).
+	updater *update.Updater
+	version string
+	// exePath replaces the executable to update (tests; never the test binary).
+	exePath string
 }
 
 // Execute runs the CLI and returns the process exit code.
@@ -56,6 +64,10 @@ func run(root *cobra.Command, opts *options, args []string, stdout, stderr io.Wr
 	opts.teardown()
 	if err == nil {
 		return ExitOK
+	}
+	var ee exitError
+	if errors.As(err, &ee) {
+		return ee.code
 	}
 	fmt.Fprintf(stderr, "stkr: %v\n", err)
 	return exitCode(err)
@@ -96,7 +108,7 @@ func newRoot() (*cobra.Command, *options) {
 	root.PersistentFlags().BoolVar(&opts.debug, "debug", false, "write debug logs to stderr")
 	root.PersistentFlags().BoolVar(&opts.json, "json", false, "machine-readable JSON output")
 
-	root.AddCommand(newVersionCmd(opts), newConfigCmd(opts),
+	root.AddCommand(newVersionCmd(opts), newUpdateCmd(opts), newConfigCmd(opts),
 		newSwitchCmd(opts), newStopCmd(opts), newNowCmd(opts), newDayCmd(opts), newWeekCmd(opts),
 		newCtxCmd(opts), newBackupCmd(opts), newImportLegacyCmd(opts), newAgentsCmd(opts), newAICmd(opts), newServeCmd(opts),
 		newStartDayCmd(opts), newCloseCmd(opts), newImportCmd(opts), newPromptsCmd(opts),
@@ -118,6 +130,7 @@ func markUnknownAsUsage(root *cobra.Command) {
 
 // setup prepares the data directory and logging for commands that use it.
 func (o *options) setup(cmd *cobra.Command) error {
+	app.CleanupOldBinary()
 	if cmd.Annotations[annotationNoHome] == "true" {
 		return nil
 	}
