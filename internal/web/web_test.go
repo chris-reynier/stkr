@@ -131,7 +131,7 @@ func TestPages(t *testing.T) {
 	today := body(t, f.get("/ui/today"), 200)
 	mustContain(t, today, "Monday 2026-11-16", "ACME", "kickoff", "id=\"import\"", "id=\"top3\"", "id=\"items\"", "1h00m",
 		"/ui/week", "/ui/settings", "id=\"update-banner\"", "href=\"/static/app.css\"", "/static/htmx.min.js")
-	for _, absent := range []string{">Agents<", ">Ideas<", ">Links<"} {
+	for _, absent := range []string{">Ideas<", ">Links<"} {
 		if strings.Contains(today, absent) {
 			t.Errorf("nav shows unregistered page %s", absent)
 		}
@@ -476,15 +476,15 @@ func TestRegisterAddsPageToNav(t *testing.T) {
 	regMu.Unlock()
 	t.Cleanup(func() { regMu.Lock(); registry = saved; regMu.Unlock() })
 
-	fsys := fstest.MapFS{"agents.html": {Data: []byte(`{{define "content"}}<h1>Agents page</h1>{{.Data}}{{end}}`)}}
-	Register(Page{ID: "agents", Title: "Agents", Path: "/ui/agents", Order: 30, Templates: fsys, Mount: func(ui *UI) {
-		ui.Get("GET /ui/agents", func(w http.ResponseWriter, r *http.Request) { ui.Render(w, r, "agents", "Agents", "hello") })
+	fsys := fstest.MapFS{"ideas.html": {Data: []byte(`{{define "content"}}<h1>Ideas page</h1>{{.Data}}{{end}}`)}}
+	Register(Page{ID: "ideas", Title: "Ideas", Path: "/ui/ideas", Order: 40, Templates: fsys, Mount: func(ui *UI) {
+		ui.Get("GET /ui/ideas", func(w http.ResponseWriter, r *http.Request) { ui.Render(w, r, "ideas", "Ideas", "hello") })
 	}})
 	f := newFixture(t)
-	page := body(t, f.get("/ui/agents"), 200)
-	mustContain(t, page, "Agents page", "hello", `class="active"`)
+	page := body(t, f.get("/ui/ideas"), 200)
+	mustContain(t, page, "Ideas page", "hello", `class="active"`)
 	today := body(t, f.get("/ui/today"), 200)
-	if strings.Index(today, ">Week<") > strings.Index(today, ">Agents<") || strings.Index(today, ">Agents<") > strings.Index(today, ">Settings<") {
+	if strings.Index(today, ">Week<") > strings.Index(today, ">Ideas<") || strings.Index(today, ">Ideas<") > strings.Index(today, ">Settings<") {
 		t.Error("nav order wrong")
 	}
 	// A broken page template fails Mount instead of serving broken pages.
@@ -517,3 +517,44 @@ func TestWeekNavigationAndEmpty(t *testing.T) {
 }
 
 func itoa(n int64) string { return strconv.FormatInt(n, 10) }
+
+func TestAgentsPage(t *testing.T) {
+	f := newFixture(t)
+	ctx := context.Background()
+	for _, ev := range []service.AgentEvent{
+		{Instance: "i1", Event: "state", State: "action_required", Slot: ptr(2), Workspace: `C:\Code\Alpha`, Summary: "needs <b>approval</b>"},
+		{Instance: "i2", Event: "state", State: "working"},
+	} {
+		if _, err := f.svc.AgentEvent(ctx, ev); err != nil {
+			t.Fatal(err)
+		}
+	}
+	page := body(t, f.get("/ui/agents"), 200)
+	mustContain(t, page, "action_required", "Alpha", "unmapped", `C:\Code\Alpha`, "/ui/agents/go", "/ui/agents/queue", "needs &lt;b&gt;approval&lt;/b&gt;")
+	if strings.Contains(page, "<b>approval</b>") {
+		t.Error("summary not escaped")
+	}
+
+	// map the workspace to a context
+	w := f.post("/ui/agents/map", url.Values{"workspace": {`C:\Code\Alpha`}, "context": {"meeting"}, "next": {"/ui/agents"}})
+	if w.Code != http.StatusSeeOther {
+		t.Fatalf("map = %d", w.Code)
+	}
+	page = body(t, f.get("/ui/agents"), 200)
+	mustContain(t, page, "Meeting", "Every workspace maps to a context.")
+
+	// queue, go, ack
+	for _, p := range []string{"/ui/agents/queue", "/ui/agents/go"} {
+		if w := f.post(p, url.Values{"id": {"i2"}, "next": {"/ui/agents"}}); w.Code != http.StatusSeeOther {
+			t.Errorf("%s = %d", p, w.Code)
+		}
+	}
+	if w := f.post("/ui/agents/ack-done", url.Values{"next": {"/ui/agents"}}); w.Code != http.StatusSeeOther {
+		t.Errorf("ack = %d", w.Code)
+	}
+	if w := f.post("/ui/agents/go-next", url.Values{"next": {"/ui/agents"}}); w.Code != http.StatusSeeOther {
+		t.Errorf("go-next = %d", w.Code)
+	}
+}
+
+func ptr(i int) *int { return &i }

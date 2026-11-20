@@ -16,6 +16,7 @@ import (
 	"github.com/chris-reynier/stkr/internal/config"
 	"github.com/chris-reynier/stkr/internal/domain"
 	"github.com/chris-reynier/stkr/internal/logx"
+	"github.com/chris-reynier/stkr/internal/platform"
 	"github.com/chris-reynier/stkr/internal/store"
 	"github.com/chris-reynier/stkr/internal/timeline"
 )
@@ -35,6 +36,10 @@ type Deps struct {
 	ConfigPath string
 	// Logger defaults to a discarding logger.
 	Logger *slog.Logger
+	// Windows focuses windows and Launcher opens workspaces. Nil values use
+	// the platform implementations (Launcher from the launch.* config keys).
+	Windows  platform.Windows
+	Launcher platform.Launcher
 }
 
 // Service is the application facade.
@@ -48,6 +53,8 @@ type Service struct {
 	configPath string
 	cfgMu      sync.Mutex
 	log        *slog.Logger
+	windows    platform.Windows
+	launcher   platform.Launcher
 }
 
 // New builds a Service. cfg must be valid.
@@ -68,7 +75,16 @@ func New(st *store.Store, clk clock.Clock, cfg *config.Config, deps Deps) (*Serv
 	if lg == nil {
 		lg = slog.New(slog.NewTextHandler(io.Discard, nil))
 	}
+	win, lau := deps.Windows, deps.Launcher
+	if win == nil {
+		win = platform.NewWindows()
+	}
+	if lau == nil {
+		lau = platform.NewLauncher(cfg.Launch.Command, cfg.Launch.Args)
+	}
 	return &Service{
+		windows:    win,
+		launcher:   lau,
 		st:         st,
 		clk:        clk,
 		cfg:        cfg,

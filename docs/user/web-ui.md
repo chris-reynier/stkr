@@ -8,6 +8,7 @@ Pages:
 
 - **Today** shows the timeline of a day: each event with its start, end, duration and note. Blocks that are too long without a switch are flagged "idle-suspect" and do not count until you confirm them. Below are the gaps in your working hours and the totals per context. You can switch or stop tracking from the top of the page, and move to other days with the links.
 - **Week** shows hours per context and day, the hours per ticket (rounded for export), contexts that have time but no ticket, and the Tempo CSV download.
+- **Agents** lists your coding agent windows with their state and context, with Go and Queue buttons and a list of folders that match no context. See [Agents](agents.md).
 - **Settings** edits contexts (label, kind, Tempo ticket, notebook URL, working folder, park or activate) and the configuration (time, paths, AI provider, Claude Code, GitHub Copilot, Ollama, MCP).
 
 ## How to use

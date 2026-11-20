@@ -1,0 +1,44 @@
+{{define "content"}}{{with .Data}}
+<h1>Agents</h1>
+
+<section id="agent-list">
+<p class="actions">
+  <form method="post" action="/ui/agents/go-next" class="inline"><input type="hidden" name="next" value="/ui/agents"><button>Go to next</button></form>
+  <form method="post" action="/ui/agents/ack-done" class="inline"><input type="hidden" name="next" value="/ui/agents"><button class="secondary">Acknowledge done</button></form>
+</p>
+{{if .List.Instances}}
+<table class="grid"><thead><tr><th>Slot</th><th>State</th><th>Context</th><th>Summary</th><th>Updated</th><th></th></tr></thead><tbody>
+{{range .List.Instances}}
+<tr>
+  <td>{{if .Slot}}{{.Slot}}{{end}}</td>
+  <td><span class="tag state-{{.State}}">{{.State}}</span>{{if .Queued}} <span class="tag">queued</span>{{end}}</td>
+  <td>{{.Label}}{{if not .Mapped}}{{if .Workspace}} <span class="tag warn">unmapped</span>{{end}}{{end}}</td>
+  <td>{{.Summary}}</td>
+  <td>{{hm .Updated}}</td>
+  <td class="actions">
+    <form method="post" action="/ui/agents/go" class="inline"><input type="hidden" name="next" value="/ui/agents"><input type="hidden" name="id" value="{{.ID}}"><button>Go</button></form>
+    {{if not .Queued}}<form method="post" action="/ui/agents/queue" class="inline"><input type="hidden" name="next" value="/ui/agents"><input type="hidden" name="id" value="{{.ID}}"><button class="secondary">Queue</button></form>{{end}}
+  </td>
+</tr>
+{{end}}
+</tbody></table>
+{{else}}<p class="empty">No agent instances reported yet. See the Stream Deck setup in the docs.</p>{{end}}
+</section>
+
+<section id="unknown-workspaces">
+<h2>Unknown workspaces</h2>
+{{if .List.Unknown}}
+<p>These workspaces match no context. Map one to a context so focusing it logs time.</p>
+{{$ctxs := .Contexts}}
+<table class="grid"><thead><tr><th>Workspace</th><th>Instances</th><th>Map to context</th></tr></thead><tbody>
+{{range .List.Unknown}}
+<tr><td><code>{{.Workspace}}</code></td><td>{{.Instances}}</td>
+<td><form method="post" action="/ui/agents/map" class="inline">
+  <input type="hidden" name="next" value="/ui/agents"><input type="hidden" name="workspace" value="{{.Workspace}}">
+  <select name="context" aria-label="Context for {{.Workspace}}">{{range $ctxs}}<option value="{{.ID}}">{{.Label}}</option>{{end}}</select>
+  <button>Map</button></form></td></tr>
+{{end}}
+</tbody></table>
+{{else}}<p class="empty">Every workspace maps to a context.</p>{{end}}
+</section>
+{{end}}{{end}}
