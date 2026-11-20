@@ -5,6 +5,8 @@ STKR is a local-first task stack manager. These pages explain how to use it.
 - [Getting started](getting-started.md): build, run, and find your data.
 - [Time tracking](time-tracking.md): switch contexts, read your day and week, confirm idle blocks.
 - [Contexts](contexts.md): create, change, park and activate contexts.
+- [Server](server.md): run `stkr serve`, autostart on Windows, port.
+- [Stream Deck](stream-deck.md): switch contexts from keys and show the current context.
 - [Backup and restore](backup-restore.md): backups and how to restore one.
 - [Legacy import](legacy-import.md): keep a copy of data from the earlier Python version.
 - [Configuration](configuration.md): every setting and its default.

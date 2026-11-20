@@ -27,6 +27,7 @@ stkr [flags]
 * [stkr day](stkr_day.md)	 - Show the blocks, gaps and totals of a day
 * [stkr import-legacy](stkr_import-legacy.md)	 - Archive files from the earlier Python version (copy only)
 * [stkr now](stkr_now.md)	 - Show the current context and today's total
+* [stkr serve](stkr_serve.md)	 - Run the local HTTP server and background jobs
 * [stkr stop](stkr_stop.md)	 - Stop tracking (switch to off)
 * [stkr switch](stkr_switch.md)	 - Start working on a context
 * [stkr version](stkr_version.md)	 - Print version information
