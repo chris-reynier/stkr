@@ -12,7 +12,7 @@ Pages:
 - **Agents** lists your coding agent windows with their state and context, with Go and Queue buttons and a list of folders that match no context. See [Agents](agents.md).
 - **Ideas** lists captured ideas with filters and inline triage, and has a capture form and a voice record button. See [Capture](capture.md).
 - **Links** saves, searches, pins and deletes bookmarks. See [Bookmarks](bookmarks.md).
-- **Settings** edits contexts (label, kind, Tempo ticket, notebook URL, working folder, park or activate) and the configuration (time, paths, AI provider, Claude Code, GitHub Copilot, Ollama, MCP).
+- **Settings** edits contexts (label, kind, Tempo ticket, notebook URL, working folder, park or activate) and the configuration (time, paths, AI provider, Claude Code, GitHub Copilot, Ollama, MCP). It also has a **Test provider** button for the AI provider (see [AI providers](ai-providers.md)).
 
 ## How to use
 
