@@ -16,6 +16,7 @@ import (
 	"github.com/chris-reynier/stkr/internal/app"
 	"github.com/chris-reynier/stkr/internal/config"
 	"github.com/chris-reynier/stkr/internal/httpapi"
+	"github.com/chris-reynier/stkr/internal/web"
 )
 
 func newServeCmd(opts *options) *cobra.Command {
@@ -60,6 +61,9 @@ func newServeCmd(opts *options) *cobra.Command {
 			runner.Start(ctx)
 
 			srv := httpapi.New(svc, httpapi.Options{Port: realPort, AllowedOrigins: cfg.AllowedOrigins, Logger: lg})
+			if _, err := web.Mount(srv.Mux(), svc, web.Options{Logger: lg}); err != nil {
+				return err
+			}
 			fmt.Fprintf(cmd.OutOrStdout(), "stkr serving on http://127.0.0.1:%d\n", realPort)
 			lg.Info("serve started", "port", realPort)
 			err = srv.Serve(ctx, ln)

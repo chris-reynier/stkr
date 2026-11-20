@@ -1,7 +1,9 @@
 package httpapi
 
 import (
+	"bytes"
 	"net/http"
+	"strings"
 
 	"github.com/chris-reynier/stkr/internal/domain"
 	"github.com/chris-reynier/stkr/internal/service"
@@ -54,4 +56,25 @@ func (s *Server) handleContexts(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"contexts": list})
+}
+
+// handleTempoCSV serves the Tempo import file of an ISO week. Contexts with
+// counted time but no ticket are named in the X-STKR-Unmapped header.
+func (s *Server) handleTempoCSV(w http.ResponseWriter, r *http.Request) {
+	rep, err := s.svc.Tempo(r.Context(), r.PathValue("week"))
+	if err != nil {
+		s.writeErr(w, err)
+		return
+	}
+	var buf bytes.Buffer
+	if err := rep.WriteCSV(&buf); err != nil {
+		s.writeErr(w, err)
+		return
+	}
+	h := w.Header()
+	h.Set("Content-Type", "text/csv; charset=utf-8")
+	h.Set("Content-Disposition", `attachment; filename="stkr-tempo-`+rep.Week+`.csv"`)
+	h.Set("Cache-Control", "no-store")
+	h.Set("X-STKR-Unmapped", strings.Join(rep.UnmappedIDs(), ","))
+	_, _ = w.Write(buf.Bytes())
 }

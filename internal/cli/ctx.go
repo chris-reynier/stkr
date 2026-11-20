@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 
 	"github.com/chris-reynier/stkr/internal/domain"
 	"github.com/chris-reynier/stkr/internal/service"
@@ -18,6 +19,13 @@ type ctxFlags struct {
 
 func (f *ctxFlags) register(cmd *cobra.Command) {
 	fl := cmd.Flags()
+	// --tempo-ticket is accepted as an alias of --ticket.
+	fl.SetNormalizeFunc(func(_ *pflag.FlagSet, name string) pflag.NormalizedName {
+		if name == "tempo-ticket" {
+			name = "ticket"
+		}
+		return pflag.NormalizedName(name)
+	})
 	fl.StringVar(&f.label, "label", "", "display name")
 	fl.StringVar(&f.kind, "kind", "", "project, mode, personal or system (personal and system are never exported)")
 	fl.StringVar(&f.ticket, "ticket", "", "timesheet ticket key used for exports")

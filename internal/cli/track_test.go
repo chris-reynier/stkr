@@ -90,10 +90,14 @@ func TestTrackingCommands(t *testing.T) {
 	if json.Unmarshal([]byte(out), &wr) != nil || len(wr.Days) != 7 {
 		t.Fatalf("week --json: %q", out)
 	}
-	out, _, code = exec(t, home, "week", "--csv")
+	out, _, code = exec(t, home, "week", "--csv", "--raw")
 	lines := strings.Split(strings.TrimSpace(out), "\n")
 	if code != 0 || lines[0] != "date,context,label,tempo_ticket,hours" || len(lines) != 2 || !strings.Contains(lines[1], ",acme,ACME,AC-1,") {
 		t.Fatalf("week --csv: %d %q", code, out)
+	}
+	out, _, _ = exec(t, home, "week", "--csv")
+	if out != "date,ticket,hours,context,description\r\n" {
+		t.Fatalf("week --csv (tempo): %q", out)
 	}
 	out, _, _ = exec(t, home, "week", "2000-W01")
 	if !strings.Contains(out, "no time recorded") {

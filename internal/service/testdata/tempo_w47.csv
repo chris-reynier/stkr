@@ -1,0 +1,3 @@
+date,ticket,hours,context,description
+2026-11-16,ACME-1,0.75,acme+beta,"fix ""auth"", retry"
+2026-11-18,ACME-1,1.50,acme,ACME
