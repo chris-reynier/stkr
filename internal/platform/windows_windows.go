@@ -139,3 +139,83 @@ func bringToFront(hwnd windows.HWND) error {
 	}
 	return nil
 }
+
+var procSendInput = user32.NewProc("SendInput")
+
+const (
+	inputKeyboard = 1
+	vkControl     = 0x11
+	vkV           = 0x56
+	vkReturn      = 0x0D
+
+	// settleDelay gives the target window time to take the focus and to
+	// process the paste before the next key.
+	settleDelay = 250 * time.Millisecond
+)
+
+// keybdInput and input mirror KEYBDINPUT and INPUT. The padding makes input as
+// large as the union in the Windows headers (MOUSEINPUT is the biggest member).
+type keybdInput struct {
+	vk          uint16
+	scan        uint16
+	flags       uint32
+	time        uint32
+	dwExtraInfo uintptr
+}
+
+type input struct {
+	typ uint32
+	ki  keybdInput
+	_   [8]byte
+}
+
+func sendKeys(events []input) error {
+	if len(events) == 0 {
+		return nil
+	}
+	n, _, callErr := procSendInput.Call(uintptr(len(events)), uintptr(unsafe.Pointer(&events[0])), unsafe.Sizeof(events[0])) //nolint:gosec // G103: pointer to our own slice for the Win32 call
+	if int(n) != len(events) {
+		var errno syscall.Errno
+		if !errors.As(callErr, &errno) || errno == 0 {
+			return errors.New("SendInput was blocked (is the target window running as administrator?)")
+		}
+		return fmt.Errorf("SendInput: %w", callErr)
+	}
+	return nil
+}
+
+func key(vk uint16, up bool) input {
+	in := input{typ: inputKeyboard, ki: keybdInput{vk: vk}}
+	if up {
+		in.ki.flags = keyeventfKeyUp
+	}
+	return in
+}
+
+func (w winFocus) PasteInto(ctx context.Context, titleContains string, enter bool, wait time.Duration) error {
+	if err := w.Focus(ctx, titleContains, wait); err != nil {
+		return err
+	}
+	if err := sleepCtx(ctx, settleDelay); err != nil {
+		return err
+	}
+	if err := sendKeys([]input{key(vkControl, false), key(vkV, false), key(vkV, true), key(vkControl, true)}); err != nil {
+		return err
+	}
+	if !enter {
+		return nil
+	}
+	if err := sleepCtx(ctx, settleDelay); err != nil {
+		return err
+	}
+	return sendKeys([]input{key(vkReturn, false), key(vkReturn, true)})
+}
+
+func sleepCtx(ctx context.Context, d time.Duration) error {
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-time.After(d):
+		return nil
+	}
+}
