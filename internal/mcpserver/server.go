@@ -65,7 +65,7 @@ func New(svc *service.Service, opts Options) *mcp.Server {
 
 // Run serves one stdio session until the client disconnects or ctx ends.
 func Run(ctx context.Context, svc *service.Service, opts Options) error {
-	return New(svc, opts).Run(ctx, &mcp.StdioTransport{})
+	return New(svc, opts).Run(ctx, drainTransport{inner: &mcp.StdioTransport{}})
 }
 
 // toolError maps an error to the text of an MCP tool error: "[code] message".

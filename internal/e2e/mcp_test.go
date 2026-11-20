@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -123,4 +124,62 @@ func TestMCPDisabled(t *testing.T) {
 	if _, errOut, code := run(t, home, "mcp"); code != 2 || !strings.Contains(errOut, "disabled") {
 		t.Fatalf("code=%d stderr=%q", code, errOut)
 	}
+}
+
+// Requests that are already written when stdin closes must still be answered.
+func TestMCPAnswersAfterStdinEOF(t *testing.T) {
+	input := strings.Join([]string{
+		`{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"t","version":"0"}}}`,
+		`{"jsonrpc":"2.0","method":"notifications/initialized"}`,
+		`{"jsonrpc":"2.0","id":2,"method":"tools/list"}`,
+		"",
+	}, "\n")
+	check := func(t *testing.T, stdout string) {
+		t.Helper()
+		ids := map[float64]bool{}
+		for _, line := range strings.Split(strings.TrimSpace(stdout), "\n") {
+			var m map[string]any
+			if err := json.Unmarshal([]byte(line), &m); err != nil || m["jsonrpc"] != "2.0" {
+				t.Fatalf("stdout line is not JSON-RPC: %q", line)
+			}
+			if id, ok := m["id"].(float64); ok {
+				ids[id] = true
+				if id == 2 && len(m["result"].(map[string]any)["tools"].([]any)) != 12 {
+					t.Fatalf("tools/list: %v", m)
+				}
+			}
+		}
+		if !ids[1] || !ids[2] {
+			t.Fatalf("missing responses, got ids %v from %q", ids, stdout)
+		}
+	}
+	t.Run("pipe", func(t *testing.T) {
+		cmd := exec.Command(binPath, "mcp")
+		cmd.Env = append(os.Environ(), "STKR_HOME="+t.TempDir())
+		cmd.Stdin = strings.NewReader(input)
+		out, err := cmd.Output()
+		if err != nil {
+			t.Fatalf("exit: %v", err)
+		}
+		check(t, string(out))
+	})
+	t.Run("file", func(t *testing.T) {
+		f := filepath.Join(t.TempDir(), "in.jsonl")
+		if err := os.WriteFile(f, []byte(input), 0o600); err != nil {
+			t.Fatal(err)
+		}
+		in, err := os.Open(f)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer in.Close()
+		cmd := exec.Command(binPath, "mcp")
+		cmd.Env = append(os.Environ(), "STKR_HOME="+t.TempDir())
+		cmd.Stdin = in
+		out, err := cmd.Output()
+		if err != nil {
+			t.Fatalf("exit: %v", err)
+		}
+		check(t, string(out))
+	})
 }

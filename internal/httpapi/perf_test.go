@@ -15,6 +15,9 @@ func TestPerfBudgets(t *testing.T) {
 	if testing.Short() {
 		t.Skip("perf")
 	}
+	if raceEnabled {
+		t.Skip("timing budgets are not meaningful under the race detector")
+	}
 	f := newFixture(t)
 	ids := []string{"other", "meeting"}
 	post := make([]time.Duration, 200)
