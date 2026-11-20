@@ -1,0 +1,66 @@
+version: "2"
+
+run:
+  timeout: 5m
+
+linters:
+  default: none
+  enable:
+    - govet
+    - staticcheck
+    - errcheck
+    - gosec
+    - revive
+    - misspell
+    - depguard
+  settings:
+    depguard:
+      rules:
+        store-layering:
+          # Only internal/service and internal/store itself may import the store.
+          list-mode: lax
+          files:
+            - "$all"
+            - "!**/internal/service/**"
+            - "!**/internal/store/**"
+            - "!**/*_test.go"
+          deny:
+            - pkg: github.com/chris-reynier/stkr/internal/store
+              desc: only internal/service may import internal/store
+    gosec:
+      excludes:
+        # exec.Command with an explicit argv and no shell is allowed.
+        - G204
+    revive:
+      rules:
+        - name: blank-imports
+        - name: context-as-argument
+        - name: dot-imports
+        - name: error-return
+        - name: error-strings
+        - name: error-naming
+        - name: exported
+        - name: increment-decrement
+        - name: var-declaration
+        - name: package-comments
+        - name: range
+        - name: receiver-naming
+        - name: time-naming
+        - name: unexported-return
+        - name: indent-error-flow
+        - name: errorf
+        - name: empty-block
+        - name: superfluous-else
+        - name: unreachable-code
+  exclusions:
+    presets:
+      - std-error-handling
+    rules:
+      - path: '(_test\.go|tools[/\\]|testutil[/\\])'
+        linters:
+          - gosec
+
+formatters:
+  enable:
+    - gofmt
+    - goimports
