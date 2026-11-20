@@ -41,6 +41,7 @@ stkr [flags]
 * [stkr start-day](stkr_start-day.md)	 - Log planning and copy the Start Day prompt to the clipboard
 * [stkr stop](stkr_stop.md)	 - Stop tracking (switch to off)
 * [stkr switch](stkr_switch.md)	 - Start working on a context
+* [stkr update](stkr_update.md)	 - Check for a new release and update this program
 * [stkr version](stkr_version.md)	 - Print version information
 * [stkr week](stkr_week.md)	 - Show counted time per context and day for an ISO week
 

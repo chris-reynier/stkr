@@ -21,7 +21,11 @@ Status: early development (0.x). Windows first, with Linux and macOS builds.
 | Capture: ideas, voice notes, phone inbox, meeting actions, bookmarks (`idea`, `ideas`, `bookmark`, `links`) | available |
 | AI cleanup of ideas and Start Day plan (Ollama, Claude Code, GitHub Copilot; `ai status/test/run-once`) | available |
 | MCP server (`stkr mcp`): 12 tools, manifest resource, Claude Code and VS Code Copilot setup | available |
-| Self-update | planned |
+| Self-update (`update`), update banner, release builds for Windows, Linux and macOS | available |
+
+## Install
+
+Download the archive for your system from the [releases page](https://github.com/chris-reynier/stkr/releases), unpack it and put `stkr` on your PATH. Details, including the Windows SmartScreen note, are in [Install](docs/user/install.md). Update later with `stkr update` ([Update](docs/user/update.md)).
 
 ## Quick start
 

@@ -9,6 +9,7 @@ import (
 	"github.com/chris-reynier/stkr/internal/clock"
 	"github.com/chris-reynier/stkr/internal/config"
 	"github.com/chris-reynier/stkr/internal/service"
+	"github.com/chris-reynier/stkr/internal/update"
 )
 
 // DBName is the database file name inside the data directory.
@@ -18,6 +19,9 @@ const DBName = "stkr.db"
 type Options struct {
 	Clock  clock.Clock
 	Logger *slog.Logger
+	// Updater and Version replace the GitHub client and running version (tests).
+	Updater *update.Updater
+	Version string
 }
 
 // Open opens (and migrates) the database in home and returns a service and a
@@ -32,7 +36,7 @@ func Open(ctx context.Context, home string, cfg *config.Config, opts Options) (*
 		lg = slog.Default()
 	}
 	svc, err := service.Open(ctx, filepath.Join(home, DBName), clk, cfg,
-		service.Deps{BackupDir: filepath.Join(home, "backups"), ConfigPath: config.Path(home), PromptsDir: filepath.Join(home, "prompts"), AudioDir: filepath.Join(home, "audio"), Logger: lg})
+		service.Deps{BackupDir: filepath.Join(home, "backups"), ConfigPath: config.Path(home), PromptsDir: filepath.Join(home, "prompts"), AudioDir: filepath.Join(home, "audio"), Logger: lg, Updater: opts.Updater, Version: opts.Version})
 	if err != nil {
 		return nil, nil, err
 	}

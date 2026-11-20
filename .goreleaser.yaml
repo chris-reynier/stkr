@@ -1,0 +1,60 @@
+# GoReleaser v2 configuration. See docs/dev/release.md.
+version: 2
+
+project_name: stkr
+
+builds:
+  - id: stkr
+    main: ./cmd/stkr
+    binary: stkr
+    env:
+      - CGO_ENABLED=0
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w -X github.com/chris-reynier/stkr/internal/buildinfo.Version={{.Version}} -X github.com/chris-reynier/stkr/internal/buildinfo.Commit={{.Commit}} -X github.com/chris-reynier/stkr/internal/buildinfo.Date={{.Date}}
+    goos: [windows, linux, darwin]
+    goarch: [amd64, arm64]
+    mod_timestamp: "{{ .CommitTimestamp }}"
+
+archives:
+  - id: stkr
+    ids: [stkr]
+    name_template: "stkr_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    formats: [tar.gz]
+    format_overrides:
+      - goos: windows
+        formats: [zip]
+    files:
+      - README.md
+      - LICENSE
+      - docs/user/**/*
+
+checksum:
+  name_template: checksums.txt
+  algorithm: sha256
+
+changelog:
+  sort: asc
+  use: git
+  groups:
+    - title: Features
+      regexp: '^feat(\(.+\))?!?:'
+      order: 0
+    - title: Fixes
+      regexp: '^fix(\(.+\))?!?:'
+      order: 1
+    - title: Documentation
+      regexp: '^docs(\(.+\))?!?:'
+      order: 2
+    - title: Other
+      order: 999
+  filters:
+    exclude:
+      - '^test(\(.+\))?:'
+      - '^ci(\(.+\))?:'
+      - '^chore(\(.+\))?:'
+
+release:
+  prerelease: auto
+  draft: false

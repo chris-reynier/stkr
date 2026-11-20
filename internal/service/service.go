@@ -21,6 +21,7 @@ import (
 	"github.com/chris-reynier/stkr/internal/platform"
 	"github.com/chris-reynier/stkr/internal/store"
 	"github.com/chris-reynier/stkr/internal/timeline"
+	upd "github.com/chris-reynier/stkr/internal/update"
 )
 
 // SwitchDebounce is the window in which a repeated switch to the active
@@ -55,6 +56,10 @@ type Deps struct {
 	TitleTimeout time.Duration
 	// AI replaces the provider chosen by the config (tests).
 	AI ai.Provider
+	// Updater replaces the GitHub release client (tests). Version is the
+	// running version (default buildinfo.Version).
+	Updater *upd.Updater
+	Version string
 }
 
 // Service is the application facade.
@@ -74,6 +79,8 @@ type Service struct {
 	promptsDir string
 	capt       *captureState
 	ai         *aiState
+	updater    *upd.Updater
+	version    string
 }
 
 // New builds a Service. cfg must be valid.
@@ -110,6 +117,8 @@ func New(st *store.Store, clk clock.Clock, cfg *config.Config, deps Deps) (*Serv
 		launcher:   lau,
 		clipboard:  clip,
 		promptsDir: deps.PromptsDir,
+		updater:    deps.Updater,
+		version:    deps.Version,
 		capt:       newCaptureState(cfg, deps),
 		st:         st,
 		clk:        clk,

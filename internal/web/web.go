@@ -273,7 +273,7 @@ func (u *UI) Render(w http.ResponseWriter, r *http.Request, pageID, title string
 		http.Error(w, "unknown page", http.StatusInternalServerError)
 		return
 	}
-	v := View{Title: title, Page: pageID, Flash: takeFlash(w, r), Data: data}
+	v := View{Title: title, Page: pageID, Flash: takeFlash(w, r), Banner: u.Svc.UpdateBanner(r.Context()), Data: data}
 	for _, p := range u.pages {
 		v.Nav = append(v.Nav, NavItem{Title: p.Title, Path: p.Path, Active: p.ID == pageID})
 	}

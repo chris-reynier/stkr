@@ -55,7 +55,7 @@ You can also edit the file by hand. Unknown keys are ignored with a warning. Inv
 | `launch.command` | `code` | Program used to open a workspace. |
 | `launch.args` | `{path}` | Its arguments; `{path}` is the workspace folder. |
 | `update.check` | `true` | Check for new releases (one request to GitHub). |
-| `update.channel` | `stable` | `stable` or `beta`. |
+| `update.channel` | `stable` | `stable` or `beta` (beta also accepts pre-releases). See [Update](update.md). |
 | `update.interval_hours` | `24` | Hours between update checks. |
 | `allowed_origins` | empty | Extra browser origins allowed to call the local API. |
 

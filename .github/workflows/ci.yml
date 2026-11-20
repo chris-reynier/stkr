@@ -58,3 +58,33 @@ jobs:
           go run ./tools/gendocs
           git diff --exit-code docs/user/cli
         shell: bash
+
+  release-config:
+    name: release config
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: GoReleaser check
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          distribution: goreleaser
+          version: "~> v2"
+          args: check
+      - name: Snapshot build
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          distribution: goreleaser
+          version: "~> v2"
+          args: build --snapshot --clean --single-target
+      - name: Binary is smaller than 30 MB
+        run: |
+          f=$(find dist -type f -name stkr -perm -u+x | head -1)
+          test -n "$f"
+          size=$(stat -c %s "$f")
+          echo "binary size: $size bytes"
+          test "$size" -lt 31457280
