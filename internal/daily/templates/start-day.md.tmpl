@@ -1,0 +1,16 @@
+You are my daily planning assistant. Today is {{.Weekday}} {{.Date}}.
+
+Below is a digest of my recent work from STKR, my time and task tracker. Use it to plan my day: pick my top 3 priorities and note any follow-ups, decisions or risks I should track. Keep it short.
+
+{{.Digest}}
+
+Finish your answer with exactly one fenced block in this format. Write normal text before it if you like, but keep the block to these lines only.
+
+```stkr-brief v1
+top | 1 | <priority text>
+top | 2 | <priority text>
+top | 3 | <priority text>
+item | <action|decision|note|followup|risk> | <project id> | <summary> | <due YYYY-MM-DD or empty>
+```
+
+Rules: one record per line, fields separated by "|", no "|" inside the text. Use project ids as in the digest, or "other" when unsure. Add item lines only for things worth tracking; leave out the ones already listed as open.
