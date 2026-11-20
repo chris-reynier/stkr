@@ -92,3 +92,23 @@ func TestVersion(t *testing.T) {
 		t.Fatalf("%d %q", code, out)
 	}
 }
+
+func TestAICommands(t *testing.T) {
+	home := t.TempDir()
+	out, _, code := exec(t, home, "ai", "status")
+	if code != 0 || !strings.Contains(out, "provider:  none") || !strings.Contains(out, "active:    no") {
+		t.Fatalf("status: %d %q", code, out)
+	}
+	if _, _, code := exec(t, home, "config", "set", "ai.provider", "ollama"); code != 0 {
+		t.Fatal("set provider")
+	}
+	out, _, code = exec(t, home, "ai", "status", "--json")
+	if code != 0 || !strings.Contains(out, "ollama.enabled is false") || !strings.Contains(out, `"active": false`) {
+		t.Fatalf("status json: %d %q", code, out)
+	}
+	for _, sub := range []string{"test", "run-once"} {
+		if _, _, code := exec(t, home, "ai", sub); code != ExitUsage {
+			t.Errorf("ai %s with no provider: code = %d, want %d", sub, code, ExitUsage)
+		}
+	}
+}

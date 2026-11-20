@@ -37,18 +37,19 @@ You can also edit the file by hand. Unknown keys are ignored with a warning. Inv
 | `whisper.model` | `""` | Path to the speech model file. |
 | `ai.provider` | `none` | One of `none`, `claude_code`, `github_copilot`, `ollama`. |
 | `ai.timeout_seconds` | `120` | Timeout for each AI call. |
+| `ai.batch_minutes` | `15` | How often `serve` sorts pending ideas with the AI provider. Replaces `ollama.batch_minutes` (the old name still works). |
+| `ai.plan_start_day` | `false` | Add an AI-suggested plan to the Start Day prompt (waits at most 5 seconds). |
 | `claude_code.enabled` | `false` | Allow the Claude Code CLI as a provider. |
 | `claude_code.bin` | `claude` | Program to run. |
 | `claude_code.args` | `-p, --output-format, json` | Arguments passed to it. |
 | `claude_code.window_title` | `""` | Window title used to find the agent window. |
 | `github_copilot.enabled` | `false` | Allow the GitHub Copilot CLI as a provider. |
 | `github_copilot.bin` | `copilot` | Program to run. |
-| `github_copilot.args` | empty | Arguments passed to it. |
+| `github_copilot.args` | `-p, <short instruction>, --silent` | Arguments passed to it. |
 | `github_copilot.window_title` | `""` | Window title used to find the agent window. |
 | `ollama.enabled` | `false` | Allow a local Ollama server. |
 | `ollama.url` | `http://127.0.0.1:11434` | Ollama address. |
 | `ollama.model` | `llama3.2` | Model name. |
-| `ollama.batch_minutes` | `30` | How often queued items are classified. |
 | `mcp.enabled` | `true` | Allow the MCP server command. |
 | `agent_window_title` | `""` | Part of the title of your AI window: the default for pasting prompts (`close --paste`, `/api/paste`) and the last-resort window to focus for agents. |
 | `launch.command` | `code` | Program used to open a workspace. |

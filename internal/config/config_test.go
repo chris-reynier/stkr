@@ -228,3 +228,41 @@ func TestGetSetAllIsSecret(t *testing.T) {
 		t.Errorf("config changed on error: %+v", c)
 	}
 }
+
+func TestBatchMinutesAlias(t *testing.T) {
+	dir := t.TempDir()
+	write := func(body string) string {
+		p := filepath.Join(dir, "c.yaml")
+		if err := os.WriteFile(p, []byte(body), 0o600); err != nil {
+			t.Fatal(err)
+		}
+		return p
+	}
+	// The old key is read into ai.batch_minutes and never written back.
+	c, warns, err := Load(write("ollama:\n  batch_minutes: 40\n"))
+	if err != nil || len(warns) != 0 || c.AI.BatchMinutes != 40 || c.Ollama.BatchMinutes != 0 {
+		t.Fatalf("old key: %+v %v %v", c.AI, warns, err)
+	}
+	// The new key wins when both are present.
+	c, _, err = Load(write("ai:\n  batch_minutes: 5\nollama:\n  batch_minutes: 40\n"))
+	if err != nil || c.AI.BatchMinutes != 5 {
+		t.Fatalf("both keys: %+v %v", c.AI, err)
+	}
+	if Default().AI.BatchMinutes != 15 {
+		t.Errorf("default = %d", Default().AI.BatchMinutes)
+	}
+	out := filepath.Join(dir, "out.yaml")
+	if err := Save(out, c); err != nil {
+		t.Fatal(err)
+	}
+	if b, _ := os.ReadFile(out); strings.Contains(string(b), "batch_minutes: 0") || strings.Count(string(b), "batch_minutes") != 1 {
+		t.Errorf("saved:\n%s", b)
+	}
+	// config set with the old name changes the new field.
+	if err := c.Set("ollama.batch_minutes", "9"); err != nil || c.AI.BatchMinutes != 9 {
+		t.Fatalf("set old name: %v %d", err, c.AI.BatchMinutes)
+	}
+	if err := c.Set("ai.batch_minutes", "0"); err == nil {
+		t.Error("batch_minutes 0 accepted")
+	}
+}

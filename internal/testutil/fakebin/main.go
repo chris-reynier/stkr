@@ -7,6 +7,7 @@
 //	FAKEBIN_SLEEP_MS   sleep before doing anything (for timeout tests)
 //	FAKEBIN_ECHO_STDIN if "1", copy stdin to stdout
 //	FAKEBIN_ARGS_FILE  if set, write argv (one per line) to this file
+//	FAKEBIN_STDOUT_BYTES  if set, write this many "x" bytes to stdout
 package main
 
 import (
@@ -26,6 +27,9 @@ func main() {
 	}
 	if os.Getenv("FAKEBIN_ECHO_STDIN") == "1" {
 		_, _ = io.Copy(os.Stdout, os.Stdin)
+	}
+	if n, err := strconv.Atoi(os.Getenv("FAKEBIN_STDOUT_BYTES")); err == nil && n > 0 {
+		_, _ = os.Stdout.WriteString(strings.Repeat("x", n))
 	}
 	if s := os.Getenv("FAKEBIN_STDOUT"); s != "" {
 		_, _ = os.Stdout.WriteString(s)

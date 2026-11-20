@@ -22,6 +22,7 @@ stkr [flags]
 ### SEE ALSO
 
 * [stkr agents](stkr_agents.md)	 - List coding agent instances reported by the Stream Deck plugin
+* [stkr ai](stkr_ai.md)	 - Check and use the optional AI provider
 * [stkr backup](stkr_backup.md)	 - Back up the database now and print the file path
 * [stkr bookmark](stkr_bookmark.md)	 - Save a link
 * [stkr close](stkr_close.md)	 - Copy the Close Day prompt to the clipboard (and optionally paste it)

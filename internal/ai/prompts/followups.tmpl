@@ -1,0 +1,6 @@
+Below is a list of open items, one per line as "<id> | <project> | <summary>". Pick the ones that most need a follow-up and say why in one short sentence. Reply with one JSON object and nothing else:
+{"followups":[{"item":"<id from the list>","reason":"<why>"}]}
+{{template "rules"}}
+<<<ITEMS
+{{range .Items}}{{.ID}} | {{.Project}} | {{.Summary}}
+{{end}}ITEMS>>>

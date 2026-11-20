@@ -67,6 +67,11 @@ func newServeCmd(opts *options) *cobra.Command {
 				_, err := svc.ScanInbox(ctx)
 				return err
 			})
+			if svc.AIActive() {
+				runner.Add("ai-batch", time.Duration(cfg.AI.BatchMinutes)*time.Minute, svc.AIBatchTick)
+			} else if w := svc.AIStatusWarning(); w != "" {
+				lg.Warn("AI provider not active", "reason", w)
+			}
 			runner.Start(ctx)
 
 			srv := httpapi.New(svc, httpapi.Options{Port: realPort, AllowedOrigins: cfg.AllowedOrigins, Logger: lg})

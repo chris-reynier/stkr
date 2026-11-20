@@ -12,6 +12,7 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"github.com/chris-reynier/stkr/internal/ai"
 	"github.com/chris-reynier/stkr/internal/capture"
 	"github.com/chris-reynier/stkr/internal/clock"
 	"github.com/chris-reynier/stkr/internal/config"
@@ -52,6 +53,8 @@ type Deps struct {
 	Transcriber capture.Transcriber
 	// TitleTimeout is the bookmark title fetch budget (default 2 s).
 	TitleTimeout time.Duration
+	// AI replaces the provider chosen by the config (tests).
+	AI ai.Provider
 }
 
 // Service is the application facade.
@@ -70,6 +73,7 @@ type Service struct {
 	clipboard  platform.Clipboard
 	promptsDir string
 	capt       *captureState
+	ai         *aiState
 }
 
 // New builds a Service. cfg must be valid.
@@ -101,7 +105,7 @@ func New(st *store.Store, clk clock.Clock, cfg *config.Config, deps Deps) (*Serv
 	if clip == nil {
 		clip = platform.NewClipboard()
 	}
-	return &Service{
+	s := &Service{
 		windows:    win,
 		launcher:   lau,
 		clipboard:  clip,
@@ -115,7 +119,9 @@ func New(st *store.Store, clk clock.Clock, cfg *config.Config, deps Deps) (*Serv
 		backupDir:  deps.BackupDir,
 		configPath: deps.ConfigPath,
 		log:        lg,
-	}, nil
+	}
+	s.ai = newAIState(s, cfg, deps)
+	return s, nil
 }
 
 // Location returns the time zone used for days and display.

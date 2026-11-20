@@ -9,7 +9,7 @@ Write ideas down the moment you have them, by typing, speaking or dropping a fil
 - **Phone inbox**: a folder (for example a synced cloud folder) that STKR checks every 30 seconds. Audio and text files in it become ideas.
 - **Meeting items**: during a meeting, capture an action or a decision. It is filed under the project you worked on before the meeting.
 
-Ideas are tagged `pro` (default) or `personal`. Personal ideas are kept out of exports and, once AI sorting exists, are never sent to a cloud AI provider.
+Ideas are tagged `pro` (default) or `personal`. Personal ideas are kept out of exports and are never sent to a cloud AI provider (see [AI providers](ai-providers.md)).
 
 ## How to use
 

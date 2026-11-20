@@ -83,6 +83,9 @@ func (c *Config) Set(key, value string) error {
 func (c *Config) SetAll(pairs map[string]string) error {
 	cp := *c
 	for key, value := range pairs {
+		if key == "ollama.batch_minutes" { // old name
+			key = "ai.batch_minutes"
+		}
 		v, _, err := lookupField(&cp, key)
 		if err != nil {
 			return err
