@@ -91,3 +91,37 @@ A 144x144 PNG for a Stream Deck key. Content-Type `image/png`, `Cache-Control: n
 | Idle-suspect | Orange with a "?" badge. |
 
 Poll it as often as the key needs; it is cheap (cached per distinct picture).
+
+### `GET /api/week/{yyyy-Www}/tempo.csv`
+
+The Tempo import file of an ISO week. Response `200`, `Content-Type: text/csv; charset=utf-8`, `Content-Disposition: attachment; filename="stkr-tempo-<week>.csv"`. The header `X-STKR-Unmapped` lists the ids of contexts that have counted time but no ticket (comma-separated, empty if none); they are not in the file. The format is in [tempo-csv.md](tempo-csv.md). A malformed week gives `400` (`invalid`).
+
+## Web UI routes
+
+The web UI is part of the same server and follows the same Host and Origin guards. It answers with HTML, not JSON, and is meant for browsers. Pages work without JavaScript.
+
+| Route | Purpose |
+|---|---|
+| `GET /` and `GET /ui/` | `303` redirect to `/ui/today` |
+| `GET /ui/today?d=YYYY-MM-DD` | Timeline, gaps and totals of a day (default today) |
+| `GET /ui/week?w=YYYY-Www` | Hours per context and day, tickets, unmapped contexts (default this week) |
+| `GET /ui/settings` | Contexts and configuration forms |
+| `GET /static/...` | Embedded stylesheet and HTMX |
+
+Form actions are `POST` with `application/x-www-form-urlencoded`. Every one answers `303` to the local path in the form field `next` (anything that is not a `/ui/` path becomes `/ui/today`) and shows a one-time message from a `stkr_flash` cookie (HttpOnly, SameSite=Strict).
+
+| Route | Fields |
+|---|---|
+| `POST /ui/switch` | `ctx` |
+| `POST /ui/stop` | none |
+| `POST /ui/event/{id}/edit` | `date`, `time` (HH:MM), `orig_time`, `context`, `note`. The time changes only if it differs from `orig_time` |
+| `POST /ui/event/{id}/split` | `date`, `time` (HH:MM) |
+| `POST /ui/event/{id}/merge` | `other` (id of the following event) |
+| `POST /ui/event/{id}/delete` | none |
+| `POST /ui/event/{id}/confirm` | `confirmed` (`1` or `0`) |
+| `POST /ui/settings/ctx` | `id`, `label`, `kind`, `tempo_ticket`, `notebook_url`, `workdir` |
+| `POST /ui/settings/ctx/{id}/edit` | `label`, `kind`, `tempo_ticket`, `notebook_url`, `workdir` |
+| `POST /ui/settings/ctx/{id}/park`, `.../activate` | none |
+| `POST /ui/settings/config` | dotted config keys such as `day_end`, `ollama.url`; checkboxes send a hidden `false` first. Unknown keys and `port` / `allowed_origins` are ignored |
+
+All UI responses carry `Content-Security-Policy: default-src 'self'; frame-ancestors 'none'; form-action 'self'`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: no-referrer` and `X-Frame-Options: DENY`. The UI is not a stable API: use the JSON routes above for scripts.

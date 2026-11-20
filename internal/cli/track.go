@@ -6,6 +6,7 @@ import (
 	"io"
 	"sort"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -224,12 +225,12 @@ func printDay(w io.Writer, rep domain.DayReport) {
 }
 
 func newWeekCmd(opts *options) *cobra.Command {
-	var asCSV bool
+	var asCSV, raw bool
 	cmd := &cobra.Command{
 		Use:   "week [yyyy-Www]",
 		Short: "Show counted time per context and day for an ISO week",
 		Long: "Show counted time per context for each day of an ISO week (default: the current week). " +
-			"--csv prints unrounded hours per day and context for contexts that may be exported; personal and system contexts are left out.",
+			"--csv prints the Tempo import file: one row per day and ticket, hours rounded to rounding_hours after summing; personal and system contexts are left out, and contexts without a ticket are listed on stderr. With --raw the CSV has unrounded hours per day and context instead.",
 		Example: "  stkr week\n  stkr week 2026-W47\n  stkr week 2026-W47 --csv > week.csv",
 		Args:    maxArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -246,6 +247,12 @@ func newWeekCmd(opts *options) *cobra.Command {
 				return err
 			}
 			switch {
+			case asCSV && !raw:
+				tr := svc.TempoFromWeek(rep)
+				if len(tr.Unmapped) > 0 {
+					fmt.Fprintf(cmd.ErrOrStderr(), "not exported, no tempo ticket: %s\n", strings.Join(tr.UnmappedIDs(), ", "))
+				}
+				return tr.WriteCSV(cmd.OutOrStdout())
 			case asCSV:
 				return writeWeekCSV(cmd.OutOrStdout(), rep)
 			case opts.json:
@@ -255,7 +262,8 @@ func newWeekCmd(opts *options) *cobra.Command {
 			return nil
 		},
 	}
-	cmd.Flags().BoolVar(&asCSV, "csv", false, "print exportable hours as CSV (date,context,label,tempo_ticket,hours)")
+	cmd.Flags().BoolVar(&asCSV, "csv", false, "print the Tempo CSV (date,ticket,hours,context,description)")
+	cmd.Flags().BoolVar(&raw, "raw", false, "with --csv: unrounded hours per context (date,context,label,tempo_ticket,hours)")
 	return cmd
 }
 

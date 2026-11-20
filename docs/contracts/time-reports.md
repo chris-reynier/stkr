@@ -1,6 +1,6 @@
 # Time reports and week CSV — v1
 
-This contract covers the JSON that `stkr switch`, `stop`, `now`, `day`, `day confirm`, `week` and `ctx` print with `--json`, and the CSV that `stkr week --csv` prints. The HTTP API returns the same objects.
+This contract covers the JSON that `stkr switch`, `stop`, `now`, `day`, `day confirm`, `week` and `ctx` print with `--json`, and the raw CSV that `stkr week --csv --raw` prints. The rounded Tempo file is in [tempo-csv.md](tempo-csv.md). The HTTP API returns the same objects.
 
 ## Conventions
 
@@ -92,7 +92,7 @@ When not tracking: `tracking` is `false` and `context`, `event_id`, `since` and 
   "counted_seconds": 9000, "idle_suspect_seconds": 0, "gap_seconds": 0, "working_days": 2 }
 ```
 
-## Week CSV (`stkr week --csv`)
+## Raw week CSV (`stkr week --csv --raw`)
 
 Comma-separated, RFC 4180 quoting, UTF-8, one header line:
 

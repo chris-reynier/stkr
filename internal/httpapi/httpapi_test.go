@@ -439,3 +439,42 @@ func TestGETDoesNotMutate(t *testing.T) {
 		t.Fatal("GET changed state")
 	}
 }
+
+func TestTempoCSV(t *testing.T) {
+	f := newFixture(t)
+	ctx := context.Background()
+	if _, err := f.svc.AddContext(ctx, domain.Context{ID: "acme", Label: "ACME", TempoTicket: "ACME-1"}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := f.svc.AddContext(ctx, domain.Context{ID: "nt", Label: "No ticket"}); err != nil {
+		t.Fatal(err)
+	}
+	for _, s := range []struct{ at, ctx string }{{"09:00", "acme"}, {"10:10", "nt"}, {"10:40", "off"}} {
+		ts, _ := time.Parse("2006-01-02 15:04", "2026-11-16 "+s.at)
+		f.clk.Set(ts)
+		if _, err := f.svc.Switch(ctx, s.ctx, domain.SourceAPI, ""); err != nil {
+			t.Fatal(err)
+		}
+	}
+	f.clk.Set(time.Date(2026, 11, 17, 9, 0, 0, 0, time.UTC))
+	w := f.do("GET", "/api/week/2026-W47/tempo.csv")
+	if w.Code != 200 || !strings.HasPrefix(w.Header().Get("Content-Type"), "text/csv") {
+		t.Fatalf("%d %v", w.Code, w.Header())
+	}
+	want := "date,ticket,hours,context,description\r\n2026-11-16,ACME-1,1.25,acme,ACME\r\n"
+	if w.Body.String() != want {
+		t.Errorf("body = %q, want %q", w.Body, want)
+	}
+	if cd := w.Header().Get("Content-Disposition"); !strings.Contains(cd, "stkr-tempo-2026-W47.csv") {
+		t.Errorf("disposition = %q", cd)
+	}
+	if got := w.Header().Get("X-STKR-Unmapped"); got != "nt" {
+		t.Errorf("unmapped header = %q", got)
+	}
+	if w := f.do("GET", "/api/week/bogus/tempo.csv"); w.Code != 400 {
+		t.Errorf("bad week: %d", w.Code)
+	}
+	if w := f.do("POST", "/api/week/2026-W47/tempo.csv"); w.Code == 200 {
+		t.Error("POST must not be served")
+	}
+}

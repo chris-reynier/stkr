@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"sync"
 	"time"
 	"unicode/utf8"
 
@@ -30,19 +31,23 @@ const MaxNoteLen = 1000
 type Deps struct {
 	// BackupDir is where backups are written. Required for Backup.
 	BackupDir string
+	// ConfigPath is the config file the settings page edits. Empty disables saving.
+	ConfigPath string
 	// Logger defaults to a discarding logger.
 	Logger *slog.Logger
 }
 
 // Service is the application facade.
 type Service struct {
-	st        *store.Store
-	clk       clock.Clock
-	cfg       *config.Config
-	loc       *time.Location
-	tl        timeline.Config
-	backupDir string
-	log       *slog.Logger
+	st         *store.Store
+	clk        clock.Clock
+	cfg        *config.Config
+	loc        *time.Location
+	tl         timeline.Config
+	backupDir  string
+	configPath string
+	cfgMu      sync.Mutex
+	log        *slog.Logger
 }
 
 // New builds a Service. cfg must be valid.
@@ -64,13 +69,14 @@ func New(st *store.Store, clk clock.Clock, cfg *config.Config, deps Deps) (*Serv
 		lg = slog.New(slog.NewTextHandler(io.Discard, nil))
 	}
 	return &Service{
-		st:        st,
-		clk:       clk,
-		cfg:       cfg,
-		loc:       loc,
-		tl:        timeline.Config{Loc: loc, DayStart: ds, DayEnd: de, IdleGap: time.Duration(cfg.IdleGapMinutes) * time.Minute},
-		backupDir: deps.BackupDir,
-		log:       lg,
+		st:         st,
+		clk:        clk,
+		cfg:        cfg,
+		loc:        loc,
+		tl:         timeline.Config{Loc: loc, DayStart: ds, DayEnd: de, IdleGap: time.Duration(cfg.IdleGapMinutes) * time.Minute},
+		backupDir:  deps.BackupDir,
+		configPath: deps.ConfigPath,
+		log:        lg,
 	}, nil
 }
 

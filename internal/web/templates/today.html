@@ -1,0 +1,87 @@
+{{define "content"}}{{with .Data}}
+<h1>{{.Rep.Weekday}} {{.Rep.Date}}{{if .IsToday}} <small>today</small>{{end}}</h1>
+<p class="pager"><a href="/ui/today?d={{.Prev}}">&larr; previous day</a>{{if not .IsToday}} <a href="/ui/today">today</a>{{end}} <a href="/ui/today?d={{.Next}}">next day &rarr;</a></p>
+
+{{if .IsToday}}
+<section id="now" class="card">
+  {{if .Now.Tracking}}
+  <p><strong>{{.Now.Context.Label}}</strong> since {{hm .Now.Since}} ({{dur .Now.Elapsed}}){{if .Now.IdleSuspect}} <span class="tag warn">idle?</span>{{end}} &middot; today {{dur .Now.Today}}</p>
+  {{else}}<p>Not tracking. Today so far: {{dur .Now.Today}}.</p>{{end}}
+  <form method="post" action="/ui/switch" class="inline">
+    <input type="hidden" name="next" value="{{.Self}}">
+    {{range .Switchable}}<button name="ctx" value="{{.ID}}">{{.Label}}</button>{{end}}
+    {{if .Now.Tracking}}<button formaction="/ui/stop" class="secondary">Stop</button>{{end}}
+  </form>
+</section>
+{{end}}
+
+<section id="timeline">
+<h2>Timeline</h2>
+{{if .Rows}}
+<table class="timeline">
+<thead><tr><th>Time</th><th>Context</th><th>Duration</th><th>Note</th><th>Flags</th><th>Actions</th></tr></thead>
+<tbody>
+{{range .Rows}}{{$row := .}}
+<tr id="event-{{.Event.ID}}"{{if .Block}}{{if .Block.IdleSuspect}}{{if not .Block.Counted}} class="suspect"{{end}}{{end}}{{end}}>
+  <td>{{hm .Event.TS}}{{if .Block}}&ndash;{{hm .Block.End}}{{end}}</td>
+  <td>{{.Label}}{{if eq .Event.ContextID "off"}} <span class="tag">off</span>{{end}}</td>
+  <td>{{if .Block}}{{dur .Block.Duration}}{{else}}-{{end}}</td>
+  <td>{{.Event.Note}}</td>
+  <td>{{if .Block}}{{if .Block.IdleSuspect}}{{if .Block.Confirmed}}<span class="tag ok">confirmed</span>{{else}}<span class="tag warn">idle-suspect, not counted</span>{{end}}{{end}}{{end}}</td>
+  <td class="actions">
+    <details><summary>Edit</summary>
+      <form method="post" action="/ui/event/{{.Event.ID}}/edit" class="stack">
+        <input type="hidden" name="next" value="{{$.Data.Self}}"><input type="hidden" name="date" value="{{$.Data.Rep.Date}}">
+        <input type="hidden" name="orig_time" value="{{hm .Event.TS}}">
+        <label>Start <input type="time" name="time" value="{{hm .Event.TS}}" required></label>
+        <label>Context <select name="context">{{range $.Data.Contexts}}<option value="{{.ID}}"{{if eq .ID $row.Event.ContextID}} selected{{end}}>{{.Label}}{{if not .Active}} (parked){{end}}</option>{{end}}</select></label>
+        <label>Note <input type="text" name="note" value="{{.Event.Note}}" maxlength="1000"></label>
+        <button>Save</button>
+      </form>
+      <form method="post" action="/ui/event/{{.Event.ID}}/split" class="inline">
+        <input type="hidden" name="next" value="{{$.Data.Self}}"><input type="hidden" name="date" value="{{$.Data.Rep.Date}}">
+        <label>Split at <input type="time" name="time" required></label> <button>Split</button>
+      </form>
+    </details>
+    {{if .Block}}{{if .Block.IdleSuspect}}
+    <form method="post" action="/ui/event/{{.Event.ID}}/confirm" class="inline">
+      <input type="hidden" name="next" value="{{$.Data.Self}}">
+      {{if .Block.Confirmed}}<input type="hidden" name="confirmed" value="0"><button class="secondary">Unconfirm</button>
+      {{else}}<input type="hidden" name="confirmed" value="1"><button>Confirm worked</button>{{end}}
+    </form>{{end}}{{end}}
+    {{if .NextID}}
+    <form method="post" action="/ui/event/{{.Event.ID}}/merge" class="inline">
+      <input type="hidden" name="next" value="{{$.Data.Self}}"><input type="hidden" name="other" value="{{.NextID}}">
+      <button class="secondary">Merge with next</button>
+    </form>{{end}}
+    <form method="post" action="/ui/event/{{.Event.ID}}/delete" class="inline">
+      <input type="hidden" name="next" value="{{$.Data.Self}}"><button class="danger">Delete</button>
+    </form>
+  </td>
+</tr>
+{{end}}
+</tbody></table>
+{{else}}<p class="empty">No events on this day.</p>{{end}}
+</section>
+
+<section id="gaps">
+<h2>Gaps</h2>
+{{if .Rep.Gaps}}<ul>{{range .Rep.Gaps}}<li>{{hm .Start}}&ndash;{{hm .End}} ({{dur .Duration}}) not counted</li>{{end}}</ul>
+<p class="muted">Uncovered working hours, total {{dur .Rep.GapTotal}}.</p>
+{{else}}<p class="empty">No gaps in working hours.</p>{{end}}
+{{if .Rep.IdleSuspect}}<p class="muted">Idle-suspect time not counted: {{dur .Rep.IdleSuspect}}. Confirm a block to count it.</p>{{end}}
+</section>
+
+<section id="totals">
+<h2>Totals</h2>
+{{if .Rep.Totals}}
+<table><thead><tr><th>Context</th><th>Kind</th><th>Counted</th></tr></thead><tbody>
+{{range .Rep.Totals}}<tr><td>{{.Label}}</td><td>{{.Kind}}</td><td>{{dur .Counted}}</td></tr>{{end}}
+</tbody><tfoot><tr><th colspan="2">Total</th><th>{{dur .Rep.Counted}}</th></tr></tfoot></table>
+{{else}}<p class="empty">Nothing counted yet.</p>{{end}}
+</section>
+
+<section id="top3" class="card"><h2>Top 3</h2><p class="empty">Not set up yet.</p></section>
+<section id="import" class="card"><h2>Import</h2><p class="empty">Not available yet.</p></section>
+<section id="items" class="card"><h2>Today's items</h2><p class="empty">No items yet.</p></section>
+{{end}}{{end}}

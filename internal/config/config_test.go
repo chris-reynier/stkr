@@ -198,3 +198,33 @@ func TestHome(t *testing.T) {
 		t.Fatalf("default: %q %v", got, err)
 	}
 }
+
+func TestGetSetAllIsSecret(t *testing.T) {
+	c := Default()
+	if v, ok := c.Get("ollama.url"); !ok || v != "http://127.0.0.1:11434" {
+		t.Errorf("get string: %q %v", v, ok)
+	}
+	for key, want := range map[string]string{"port": "7878", "rounding_hours": "0.25", "mcp.enabled": "true", "claude_code.args": "-p,--output-format,json"} {
+		if v, ok := c.Get(key); !ok || v != want {
+			t.Errorf("Get(%s) = %q %v, want %q", key, v, ok, want)
+		}
+	}
+	for _, key := range []string{"nope", "whisper"} {
+		if _, ok := c.Get(key); ok {
+			t.Errorf("Get(%s) should fail", key)
+		}
+	}
+	if IsSecret("ollama.url") || IsSecret("nope") {
+		t.Error("IsSecret false positives")
+	}
+	// Day start/end are only valid together; failure leaves c unchanged.
+	if err := c.SetAll(map[string]string{"day_start": "20:00", "day_end": "23:00"}); err != nil {
+		t.Fatal(err)
+	}
+	if err := c.SetAll(map[string]string{"day_end": "10:00", "ollama.model": "x"}); err == nil {
+		t.Fatal("want error")
+	}
+	if c.DayEnd != "23:00" || c.Ollama.Model == "x" {
+		t.Errorf("config changed on error: %+v", c)
+	}
+}

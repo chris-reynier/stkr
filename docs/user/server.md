@@ -2,7 +2,7 @@
 
 ## What it does
 
-`stkr serve` runs STKR's local HTTP server. Stream Deck keys and scripts use it to switch contexts, and it draws the key images. It also runs background jobs: a daily backup (checked hourly).
+`stkr serve` runs STKR's local HTTP server. Stream Deck keys and scripts use it to switch contexts, and it draws the key images. Your browser can use it too: see [Web UI](web-ui.md). It also runs background jobs: a daily backup (checked hourly).
 
 The server listens on `127.0.0.1` only, so other computers cannot reach it. It also rejects requests with a foreign `Host` or `Origin` header. It sends nothing to the internet.
 

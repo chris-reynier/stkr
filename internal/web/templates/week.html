@@ -1,0 +1,34 @@
+{{define "content"}}{{with .Data}}
+<h1>Week {{.Rep.Week}} <small>{{.Rep.Start}} to {{.Rep.End}}</small></h1>
+<p class="pager"><a href="/ui/week?w={{.Prev}}">&larr; previous week</a>{{if not .IsCurrent}} <a href="/ui/week">this week</a>{{end}} <a href="/ui/week?w={{.Next}}">next week &rarr;</a></p>
+
+<section id="grid">
+<h2>Hours per context</h2>
+{{if .Rows}}
+<table class="grid"><thead><tr><th>Context</th>{{range .Days}}<th><a href="/ui/today?d={{.Date}}">{{.Short}}<br><small>{{.Day}}</small></a></th>{{end}}<th>Total</th></tr></thead><tbody>
+{{range .Rows}}<tr><td>{{.Label}}{{if not .Exportable}} <span class="tag">not exported</span>{{end}}</td>
+{{range .Cells}}<td>{{if .}}{{dur .}}{{end}}</td>{{end}}<td><strong>{{dur .Total}}</strong></td></tr>{{end}}
+</tbody><tfoot><tr><th>Counted</th>{{range .DayTotals}}<th>{{if .}}{{dur .}}{{end}}</th>{{end}}<th>{{dur .Rep.Counted}}</th></tr></tfoot></table>
+{{if .Rep.IdleSuspect}}<p class="muted">Idle-suspect time not counted: {{dur .Rep.IdleSuspect}}.</p>{{end}}
+{{if .Rep.GapTotal}}<p class="muted">Gaps in working hours: {{dur .Rep.GapTotal}}.</p>{{end}}
+{{else}}<p class="empty">No time recorded this week.</p>{{end}}
+</section>
+
+<section id="tickets">
+<h2>Tickets <small>rounded to {{.Tempo.RoundingHours}} h</small></h2>
+{{if .Tickets}}
+<table class="grid"><thead><tr><th>Ticket</th>{{range .Days}}<th>{{.Short}}</th>{{end}}<th>Total</th></tr></thead><tbody>
+{{range .Tickets}}<tr><td>{{.Ticket}}</td>{{range .Cells}}<td>{{hh .}}</td>{{end}}<td><strong>{{hh .Total}}</strong></td></tr>{{end}}
+</tbody></table>
+{{else}}<p class="empty">No hours mapped to tickets.</p>{{end}}
+<p><a class="button" href="/api/week/{{.Rep.Week}}/tempo.csv" hx-boost="false" download>Download Tempo CSV</a></p>
+</section>
+
+<section id="unmapped">
+<h2>Unmapped contexts</h2>
+{{if .Tempo.Unmapped}}
+<p>These contexts have counted time but no Tempo ticket, so they are left out of the CSV. Set a ticket in <a href="/ui/settings">Settings</a>.</p>
+<ul>{{range .Tempo.Unmapped}}<li>{{.Label}} ({{dur .Counted}})</li>{{end}}</ul>
+{{else}}<p class="empty">Every exported context has a ticket.</p>{{end}}
+</section>
+{{end}}{{end}}
