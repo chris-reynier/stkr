@@ -2,7 +2,7 @@
 
 ## What it does
 
-STKR is one program, `stkr`, that stores everything in a local data folder. This version provides the command line skeleton and the configuration file. More features arrive in later releases.
+STKR is one program, `stkr`, that stores everything in a local data folder. This version tracks your time by context from the command line. More features arrive in later releases.
 
 ## How to use
 
@@ -22,11 +22,21 @@ stkr config set port 8080
 stkr config set ai.provider ollama
 ```
 
+Track time (see [Time tracking](time-tracking.md)):
+
+```
+stkr ctx list
+stkr switch other
+stkr now
+stkr stop
+stkr day
+```
+
 Add `--json` to any command for machine-readable output. Add `--debug` to print debug logs to stderr. Use `--home <dir>` to use a different data folder.
 
 ### Where your data lives
 
-The data folder is, in order of priority: the `--home` flag, the `STKR_HOME` environment variable, or `~/.stkr`. On first run STKR creates it with these folders: `audio`, `prompts`, `backups`, `logs`. The settings file is `config.yaml` in the same folder. Logs are in `logs/stkr.log` and rotate at 5 MB (5 files kept).
+The data folder is, in order of priority: the `--home` flag, the `STKR_HOME` environment variable, or `~/.stkr`. On first run STKR creates it with these folders: `audio`, `prompts`, `backups`, `logs`. The database is `stkr.db`; see [Backup and restore](backup-restore.md). The settings file is `config.yaml` in the same folder. Logs are in `logs/stkr.log` and rotate at 5 MB (5 files kept).
 
 ### Exit codes
 

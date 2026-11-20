@@ -21,7 +21,7 @@ internal/e2e       tests that drive the built binary
 tools/gendocs      generates docs/user/cli
 ```
 
-Packages not yet in the repository are added as features land.
+Packages not yet in the repository are added as features land. Tables, migrations and time rules are described in [Data model](data-model.md).
 
 Rules:
 

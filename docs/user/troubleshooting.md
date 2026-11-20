@@ -16,6 +16,8 @@ Run the failing command again with `--debug` to see log output on stderr. The lo
 | `warning: unknown config key` | Check the spelling against [Configuration](configuration.md). |
 | Settings go to the wrong place | Check `STKR_HOME` and any `--home` flag. `stkr config path` shows the file in use. |
 | Cannot create the data folder | Check you have write permission to the parent folder, or use `--home`. |
+| `database is locked` | Another program holds a long write lock on `stkr.db`. Close other STKR processes or database tools and retry. |
+| `unknown context` | See [Time tracking](time-tracking.md#troubleshooting). |
 
 ## Configuration keys
 
