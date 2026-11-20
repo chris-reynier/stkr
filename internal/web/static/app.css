@@ -1,0 +1,57 @@
+:root {
+  --bg: #fafafa; --fg: #1d2126; --muted: #5d6671; --card: #fff; --line: #d9dde2;
+  --accent: #1d5fd1; --accent-fg: #fff; --warn: #9a5b00; --warn-bg: #fff3d6;
+  --ok: #17692f; --ok-bg: #def3e4; --err: #a11b1b; --err-bg: #fbe3e3;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #14171a; --fg: #e4e7ea; --muted: #99a3ad; --card: #1c2025; --line: #343b43;
+    --accent: #6ea2ff; --accent-fg: #0b1220; --warn: #f0c36a; --warn-bg: #3a2e12;
+    --ok: #7fd49a; --ok-bg: #16301f; --err: #ff9b9b; --err-bg: #3a1a1a;
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--fg); font: 15px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
+a { color: var(--accent); }
+header.top { display: flex; gap: 1.5rem; align-items: center; padding: .6rem 1.2rem; border-bottom: 1px solid var(--line); background: var(--card); flex-wrap: wrap; }
+.brand { font-weight: 700; letter-spacing: .08em; text-decoration: none; color: var(--fg); }
+nav { display: flex; gap: .3rem; flex-wrap: wrap; }
+nav a { padding: .25rem .7rem; border-radius: 6px; text-decoration: none; color: var(--muted); }
+nav a.active, nav a:hover { background: var(--bg); color: var(--fg); }
+main { max-width: 1100px; margin: 0 auto; padding: 1rem 1.2rem 3rem; }
+h1 { font-size: 1.5rem; margin: .6rem 0; } h1 small { font-weight: 400; color: var(--muted); font-size: .9rem; }
+h2 { font-size: 1.1rem; margin: 1.6rem 0 .5rem; } h2 small { font-weight: 400; color: var(--muted); }
+h3 { margin: 0 0 .4rem; font-size: 1rem; }
+.banner { padding: .5rem 1.2rem; background: var(--warn-bg); color: var(--warn); }
+.flash { padding: .5rem .8rem; border-radius: 6px; margin: .5rem 0; }
+.flash.ok { background: var(--ok-bg); color: var(--ok); }
+.flash.error { background: var(--err-bg); color: var(--err); }
+.muted, .empty { color: var(--muted); }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: .8rem 1rem; margin: .8rem 0; }
+.card h2 { margin-top: 0; }
+table { width: 100%; border-collapse: collapse; background: var(--card); }
+th, td { text-align: left; padding: .4rem .6rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-weight: 600; color: var(--muted); font-size: .85rem; }
+tfoot th { color: var(--fg); }
+table.grid td, table.grid th { text-align: right; } table.grid td:first-child, table.grid th:first-child { text-align: left; }
+tr.suspect { background: var(--warn-bg); } tr.parked { opacity: .6; }
+.tag { display: inline-block; font-size: .75rem; padding: 0 .4rem; border-radius: 4px; background: var(--line); color: var(--muted); }
+.tag.warn { background: var(--warn-bg); color: var(--warn); } .tag.ok { background: var(--ok-bg); color: var(--ok); }
+.pager { display: flex; gap: 1rem; }
+button, a.button { font: inherit; padding: .25rem .7rem; border-radius: 6px; border: 1px solid var(--accent); background: var(--accent); color: var(--accent-fg); cursor: pointer; text-decoration: none; display: inline-block; }
+button.secondary { background: transparent; color: var(--accent); }
+button.danger { background: transparent; color: var(--err); border-color: var(--err); }
+input, select { font: inherit; padding: .25rem .4rem; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--fg); max-width: 100%; }
+input[type=checkbox] { width: auto; }
+form.inline { display: inline-flex; gap: .3rem; align-items: center; flex-wrap: wrap; margin: .1rem 0; }
+form.stack, fieldset { display: grid; gap: .5rem; }
+form.stack label, fieldset label { display: grid; gap: .15rem; max-width: 520px; }
+form.stack small, fieldset small { color: var(--muted); }
+fieldset { border: 1px solid var(--line); border-radius: 8px; margin: .8rem 0; background: var(--card); }
+legend { font-weight: 600; padding: 0 .4rem; }
+details { margin: .1rem 0; } summary { cursor: pointer; color: var(--accent); }
+td.actions { white-space: nowrap; }
+table.contexts input { width: 100%; min-width: 7rem; }
+code { font-size: .9em; }
+@media (max-width: 700px) { td.actions { white-space: normal; } table { display: block; overflow-x: auto; } }

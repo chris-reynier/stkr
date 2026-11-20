@@ -1,0 +1,53 @@
+{{define "content"}}{{with .Data}}
+<h1>Settings</h1>
+
+<section id="contexts">
+<h2>Contexts</h2>
+<table class="contexts"><thead><tr><th>ID</th><th>Label</th><th>Kind</th><th>Tempo ticket</th><th>Notebook URL</th><th>Workdir</th><th></th></tr></thead><tbody>
+{{range .Contexts}}
+<tr{{if not .Active}} class="parked"{{end}}>
+  <td><code>{{.ID}}</code>{{if not .Active}} <span class="tag">parked</span>{{end}}
+    <form id="ctx-{{.ID}}" method="post" action="/ui/settings/ctx/{{.ID}}/edit"><input type="hidden" name="next" value="/ui/settings"></form></td>
+  <td><input form="ctx-{{.ID}}" name="label" value="{{.Label}}" maxlength="100" required aria-label="Label of {{.ID}}"></td>
+  <td><select form="ctx-{{.ID}}" name="kind" aria-label="Kind of {{.ID}}"{{if eq .ID "off"}} disabled{{end}}>{{$c := .}}{{range $.Data.Kinds}}<option{{if eq . $c.Kind}} selected{{end}}>{{.}}</option>{{end}}</select></td>
+  <td><input form="ctx-{{.ID}}" name="tempo_ticket" value="{{.TempoTicket}}" aria-label="Ticket of {{.ID}}"></td>
+  <td><input form="ctx-{{.ID}}" name="notebook_url" value="{{.NotebookURL}}" aria-label="Notebook URL of {{.ID}}"></td>
+  <td><input form="ctx-{{.ID}}" name="workdir" value="{{.Workdir}}" aria-label="Workdir of {{.ID}}"></td>
+  <td class="actions"><button form="ctx-{{.ID}}">Save</button>
+    {{if ne .ID "off"}}{{if .Active}}<button form="ctx-{{.ID}}" formaction="/ui/settings/ctx/{{.ID}}/park" class="secondary">Park</button>
+    {{else}}<button form="ctx-{{.ID}}" formaction="/ui/settings/ctx/{{.ID}}/activate" class="secondary">Activate</button>{{end}}{{end}}</td>
+</tr>
+{{end}}
+</tbody></table>
+<form method="post" action="/ui/settings/ctx" class="card stack" id="add-context">
+  <h3>Add a context</h3>
+  <input type="hidden" name="next" value="/ui/settings">
+  <label>ID <input name="id" required pattern="[a-z0-9][a-z0-9_-]{0,39}" placeholder="acme"></label>
+  <label>Label <input name="label" maxlength="100" placeholder="ACME project"></label>
+  <label>Kind <select name="kind">{{range .Kinds}}<option>{{.}}</option>{{end}}</select></label>
+  <label>Tempo ticket <input name="tempo_ticket"></label>
+  <label>Notebook URL <input name="notebook_url"></label>
+  <label>Workdir <input name="workdir"></label>
+  <button>Add context</button>
+</form>
+</section>
+
+<form method="post" action="/ui/settings/config" id="config" class="stack">
+<input type="hidden" name="next" value="/ui/settings">
+<p class="muted">Changes are saved to the config file. Restart <code>stkr serve</code> for them to take effect.</p>
+{{range .Sections}}
+<fieldset><legend>{{.Title}}</legend>
+{{range .Fields}}
+<label>{{.Label}}
+  {{if eq .Type "bool"}}<input type="hidden" name="{{.Key}}" value="false"><input type="checkbox" name="{{.Key}}" value="true"{{if eq .Value "true"}} checked{{end}}>
+  {{else if eq .Type "select"}}<select name="{{.Key}}">{{$f := .}}{{range .Options}}<option{{if eq . $f.Value}} selected{{end}}>{{.}}</option>{{end}}</select>
+  {{else if .Secret}}<input type="password" name="{{.Key}}" value="" autocomplete="off" placeholder="{{if .Set}}&bull;&bull;&bull;&bull; (leave empty to keep){{else}}not set{{end}}">
+  {{else}}<input type="text"{{if eq .Type "number"}} inputmode="decimal"{{end}} name="{{.Key}}" value="{{.Value}}">{{end}}
+  {{if .Help}}<small>{{.Help}}</small>{{end}}
+</label>
+{{end}}
+</fieldset>
+{{end}}
+<button>Save settings</button>
+</form>
+{{end}}{{end}}
