@@ -98,7 +98,7 @@ func newRoot() (*cobra.Command, *options) {
 
 	root.AddCommand(newVersionCmd(opts), newConfigCmd(opts),
 		newSwitchCmd(opts), newStopCmd(opts), newNowCmd(opts), newDayCmd(opts), newWeekCmd(opts),
-		newCtxCmd(opts), newBackupCmd(opts), newImportLegacyCmd(opts), newServeCmd(opts))
+		newCtxCmd(opts), newBackupCmd(opts), newImportLegacyCmd(opts), newAgentsCmd(opts), newServeCmd(opts))
 	markUnknownAsUsage(root)
 	return root, opts
 }

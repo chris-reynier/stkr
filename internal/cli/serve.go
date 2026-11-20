@@ -24,7 +24,7 @@ func newServeCmd(opts *options) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "serve",
 		Short: "Run the local HTTP server and background jobs",
-		Long: "Start the HTTP API on 127.0.0.1 and the background jobs (daily backup). " +
+		Long: "Start the HTTP API on 127.0.0.1 and the background jobs (daily backup, idle agent sweeper). " +
 			"The server only accepts connections from this computer. Stop it with Ctrl+C.\n\n" +
 			"The port comes from the `port` config key (default 7878); --port overrides it for this run. " +
 			"--port 0 picks a free port.",
@@ -56,6 +56,10 @@ func newServeCmd(opts *options) *cobra.Command {
 			runner := app.NewRunner(lg)
 			runner.Add("daily-backup", time.Hour, func(ctx context.Context) error {
 				_, _, err := svc.DailyBackup(ctx)
+				return err
+			})
+			runner.Add("agent-sweeper", time.Minute, func(ctx context.Context) error {
+				_, err := svc.SweepAgents(ctx)
 				return err
 			})
 			runner.Start(ctx)
