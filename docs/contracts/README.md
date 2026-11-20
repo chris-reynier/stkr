@@ -24,6 +24,7 @@ Published:
 | [`onedrive-export.md`](onedrive-export.md) | Project log files: section ownership, atomic rewrite (v1) |
 | [`paste-helper.md`](paste-helper.md) | `POST /api/paste`: window title, Enter, errors (v1) |
 | [`phone-inbox.md`](phone-inbox.md) | Phone inbox file naming, tag rules, stability, processed folder (v1) |
+| [`mcp-tools.md`](mcp-tools.md) | MCP tools, resource and prompts of `stkr mcp`: inputs, outputs, errors, privacy (v1, generated) |
 
 Added with the features that introduce them:
 
@@ -32,4 +33,3 @@ Added with the features that introduce them:
 | `agent-events.md` | Agent plugin events and states |
 | `streamdeck-keys.md` | Stream Deck key to endpoint map, image states |
 | `ai-providers.md` | AI provider protocol and JSON schemas |
-| `mcp-tools.md` | MCP tool names and schemas |
