@@ -38,7 +38,8 @@ type options struct {
 	debug bool
 	json  bool
 
-	closer io.Closer
+	closer   io.Closer
+	closeSvc func() error
 }
 
 // Execute runs the CLI and returns the process exit code.
@@ -95,7 +96,9 @@ func newRoot() (*cobra.Command, *options) {
 	root.PersistentFlags().BoolVar(&opts.debug, "debug", false, "write debug logs to stderr")
 	root.PersistentFlags().BoolVar(&opts.json, "json", false, "machine-readable JSON output")
 
-	root.AddCommand(newVersionCmd(opts), newConfigCmd(opts))
+	root.AddCommand(newVersionCmd(opts), newConfigCmd(opts),
+		newSwitchCmd(opts), newStopCmd(opts), newNowCmd(opts), newDayCmd(opts), newWeekCmd(opts),
+		newCtxCmd(opts), newBackupCmd(opts), newImportLegacyCmd(opts))
 	markUnknownAsUsage(root)
 	return root, opts
 }
@@ -133,6 +136,10 @@ func (o *options) setup(cmd *cobra.Command) error {
 }
 
 func (o *options) teardown() {
+	if o.closeSvc != nil {
+		_ = o.closeSvc()
+		o.closeSvc = nil
+	}
 	if o.closer != nil {
 		_ = o.closer.Close()
 		o.closer = nil

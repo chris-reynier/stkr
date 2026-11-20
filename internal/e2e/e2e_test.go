@@ -112,3 +112,86 @@ func TestSmokeP00(t *testing.T) {
 		t.Fatalf("unknown flag: code=%d", code)
 	}
 }
+
+func TestSmokeTimeTracking(t *testing.T) {
+	home := filepath.Join(t.TempDir(), "home")
+
+	if out, _, code := run(t, home, "ctx", "add", "acme", "--label", "ACME"); code != 0 {
+		t.Fatalf("ctx add: %d %q", code, out)
+	}
+	if _, _, code := run(t, home, "switch", "acme", "-n", "start"); code != 0 {
+		t.Fatalf("switch acme: %d", code)
+	}
+	// A second switch to the same context within 2 s is a no-op.
+	out, _, code := run(t, home, "--json", "switch", "acme")
+	var sw struct {
+		Created bool `json:"created"`
+	}
+	if code != 0 || json.Unmarshal([]byte(out), &sw) != nil || sw.Created {
+		t.Fatalf("double switch: %d %q", code, out)
+	}
+	if _, _, code := run(t, home, "switch", "meeting"); code != 0 {
+		t.Fatalf("switch meeting: %d", code)
+	}
+	out, _, code = run(t, home, "--json", "now")
+	var now struct {
+		Tracking bool `json:"tracking"`
+		Context  struct {
+			ID string `json:"id"`
+		} `json:"context"`
+	}
+	if code != 0 || json.Unmarshal([]byte(out), &now) != nil || !now.Tracking || now.Context.ID != "meeting" {
+		t.Fatalf("now: %d %q", code, out)
+	}
+	if _, _, code := run(t, home, "stop"); code != 0 {
+		t.Fatalf("stop: %d", code)
+	}
+
+	out, _, code = run(t, home, "--json", "day")
+	var day struct {
+		Events []struct {
+			ContextID string `json:"context_id"`
+		} `json:"events"`
+		Blocks []struct {
+			ContextID string `json:"context_id"`
+			Counted   bool   `json:"counted"`
+		} `json:"blocks"`
+	}
+	if code != 0 || json.Unmarshal([]byte(out), &day) != nil {
+		t.Fatalf("day: %d %q", code, out)
+	}
+	var evs, blocks []string
+	for _, e := range day.Events {
+		evs = append(evs, e.ContextID)
+	}
+	for _, b := range day.Blocks {
+		blocks = append(blocks, b.ContextID)
+	}
+	// Blocks shorter than a millisecond may be dropped; events are exact.
+	if strings.Join(evs, ",") != "acme,meeting,off" {
+		t.Fatalf("events: %v", evs)
+	}
+	for _, b := range blocks {
+		if b != "acme" && b != "meeting" {
+			t.Fatalf("unexpected block %q", b)
+		}
+	}
+
+	out, _, code = run(t, home, "now")
+	if code != 0 || !strings.HasPrefix(out, "not tracking") {
+		t.Fatalf("now after stop: %d %q", code, out)
+	}
+
+	_, errOut, code := run(t, home, "switch", "nope")
+	if code != 1 || !strings.Contains(errOut, "stkr ctx add nope") {
+		t.Fatalf("unknown context: %d %q", code, errOut)
+	}
+
+	out, _, code = run(t, home, "backup")
+	if code != 0 {
+		t.Fatalf("backup: %d", code)
+	}
+	if _, err := os.Stat(strings.TrimSpace(out)); err != nil {
+		t.Fatalf("backup file: %v", err)
+	}
+}
