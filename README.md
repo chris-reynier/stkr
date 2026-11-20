@@ -20,7 +20,7 @@ Status: early development (0.x). Windows first, with Linux and macOS builds.
 | Daily loop: `start-day`, `close`, `import`, `prompts init`, project log export, close reminder | available |
 | Capture: ideas, voice notes, phone inbox, meeting actions, bookmarks (`idea`, `ideas`, `bookmark`, `links`) | available |
 | AI cleanup of ideas and Start Day plan (Ollama, Claude Code, GitHub Copilot; `ai status/test/run-once`) | available |
-| MCP server | planned |
+| MCP server (`stkr mcp`): 12 tools, manifest resource, Claude Code and VS Code Copilot setup | available |
 | Self-update | planned |
 
 ## Quick start

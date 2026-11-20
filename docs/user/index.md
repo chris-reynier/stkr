@@ -12,6 +12,7 @@ STKR is a local-first task stack manager. These pages explain how to use it.
 - [Agents](agents.md): see all coding agent windows, jump to the one that needs you.
 - [Capture](capture.md): ideas, voice notes, phone inbox, meeting actions and decisions.
 - [Bookmarks](bookmarks.md): save and find links.
+- [MCP server](mcp.md): let Claude Code or GitHub Copilot read and update STKR.
 - [Backup and restore](backup-restore.md): backups and how to restore one.
 - [Legacy import](legacy-import.md): keep a copy of data from the earlier Python version.
 - [Configuration](configuration.md): every setting and its default.

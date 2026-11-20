@@ -1,0 +1,1326 @@
+[
+  {
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": false,
+      "openWorldHint": false,
+      "readOnlyHint": false,
+      "title": "Capture an idea"
+    },
+    "description": "Capture an idea. With type action or decision it becomes a follow-up item of the current project instead. Capture is instant; AI cleanup runs later.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "tag": {
+          "description": "pro (default) or personal; personal ideas are never shown back to agents",
+          "type": "string"
+        },
+        "text": {
+          "description": "the idea, action or decision text (max 10 KB)",
+          "type": "string"
+        },
+        "type": {
+          "description": "note (default, an idea), action or decision (a follow-up item for the current project)",
+          "type": "string"
+        }
+      },
+      "required": [
+        "text"
+      ],
+      "type": "object"
+    },
+    "name": "add_idea",
+    "outputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "created": {
+          "type": "boolean"
+        },
+        "idea": {
+          "additionalProperties": false,
+          "properties": {
+            "context_id": {
+              "type": "string"
+            },
+            "id": {
+              "type": "integer"
+            },
+            "source": {
+              "type": "string"
+            },
+            "status": {
+              "type": "string"
+            },
+            "suggested_project": {
+              "type": "string"
+            },
+            "tag": {
+              "type": "string"
+            },
+            "text": {
+              "type": "string"
+            },
+            "title": {
+              "type": "string"
+            },
+            "ts": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "id",
+            "ts",
+            "tag",
+            "status"
+          ],
+          "type": [
+            "null",
+            "object"
+          ]
+        },
+        "item": {
+          "additionalProperties": false,
+          "properties": {
+            "date": {
+              "type": "string"
+            },
+            "due": {
+              "type": "string"
+            },
+            "fingerprint": {
+              "type": "string"
+            },
+            "id": {
+              "type": "integer"
+            },
+            "origin": {
+              "type": "string"
+            },
+            "project": {
+              "type": "string"
+            },
+            "source": {
+              "type": "string"
+            },
+            "status": {
+              "type": "string"
+            },
+            "summary": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "id",
+            "date",
+            "type",
+            "summary",
+            "fingerprint",
+            "status"
+          ],
+          "type": [
+            "null",
+            "object"
+          ]
+        }
+      },
+      "required": [
+        "created"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "annotations": {
+      "idempotentHint": false,
+      "openWorldHint": false,
+      "readOnlyHint": true,
+      "title": "Day report"
+    },
+    "description": "Return the time report of one day: events, blocks, gaps and totals per context. Notes of personal and system contexts are removed.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "date": {
+          "description": "YYYY-MM-DD, today or yesterday; default today",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "name": "get_day",
+    "outputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "blocks": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "confirmed": {
+                "type": "boolean"
+              },
+              "context_id": {
+                "type": "string"
+              },
+              "counted": {
+                "type": "boolean"
+              },
+              "duration_seconds": {
+                "type": "integer"
+              },
+              "end": {
+                "type": "string"
+              },
+              "event_id": {
+                "type": "integer"
+              },
+              "idle_suspect": {
+                "type": "boolean"
+              },
+              "kind": {
+                "type": "string"
+              },
+              "label": {
+                "type": "string"
+              },
+              "note": {
+                "type": "string"
+              },
+              "start": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "event_id",
+              "context_id",
+              "start",
+              "end",
+              "duration_seconds",
+              "idle_suspect",
+              "confirmed",
+              "counted"
+            ],
+            "type": "object"
+          },
+          "type": [
+            "null",
+            "array"
+          ]
+        },
+        "counted_seconds": {
+          "type": "integer"
+        },
+        "date": {
+          "type": "string"
+        },
+        "events": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "confirmed": {
+                "type": "boolean"
+              },
+              "context_id": {
+                "type": "string"
+              },
+              "id": {
+                "type": "integer"
+              },
+              "note": {
+                "type": "string"
+              },
+              "source": {
+                "type": "string"
+              },
+              "ts": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "ts",
+              "context_id",
+              "source",
+              "confirmed"
+            ],
+            "type": "object"
+          },
+          "type": [
+            "null",
+            "array"
+          ]
+        },
+        "gap_seconds": {
+          "type": "integer"
+        },
+        "gaps": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "duration_seconds": {
+                "type": "integer"
+              },
+              "end": {
+                "type": "string"
+              },
+              "start": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "start",
+              "end",
+              "duration_seconds"
+            ],
+            "type": "object"
+          },
+          "type": [
+            "null",
+            "array"
+          ]
+        },
+        "idle_suspect_seconds": {
+          "type": "integer"
+        },
+        "totals": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "context_id": {
+                "type": "string"
+              },
+              "counted_seconds": {
+                "type": "integer"
+              },
+              "exportable": {
+                "type": "boolean"
+              },
+              "kind": {
+                "type": "string"
+              },
+              "label": {
+                "type": "string"
+              },
+              "tempo_ticket": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "context_id",
+              "label",
+              "kind",
+              "exportable",
+              "counted_seconds"
+            ],
+            "type": "object"
+          },
+          "type": [
+            "null",
+            "array"
+          ]
+        },
+        "weekday": {
+          "type": "string"
+        },
+        "window_end": {
+          "type": "string"
+        },
+        "window_start": {
+          "type": "string"
+        },
+        "working_day": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "date",
+        "weekday",
+        "working_day",
+        "window_start",
+        "window_end",
+        "events",
+        "blocks",
+        "gaps",
+        "totals",
+        "counted_seconds",
+        "idle_suspect_seconds",
+        "gap_seconds"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "annotations": {
+      "idempotentHint": false,
+      "openWorldHint": false,
+      "readOnlyHint": true,
+      "title": "Start or close day prompt"
+    },
+    "description": "Return the Start Day or Close Day prompt text, including the fence format the reply must use. Does not copy to the clipboard, switch context or write files.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "description": "start (morning brief prompt) or close (end-of-day prompt)",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind"
+      ],
+      "type": "object"
+    },
+    "name": "get_digest",
+    "outputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "chars": {
+          "type": "integer"
+        },
+        "kind": {
+          "type": "string"
+        },
+        "text": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "text",
+        "chars"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "annotations": {
+      "idempotentHint": false,
+      "openWorldHint": false,
+      "readOnlyHint": true,
+      "title": "What is running now"
+    },
+    "description": "Return the context being tracked, since when, and the counted time today.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "type": "object"
+    },
+    "name": "get_now",
+    "outputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "context": {
+          "additionalProperties": false,
+          "properties": {
+            "active": {
+              "type": "boolean"
+            },
+            "id": {
+              "type": "string"
+            },
+            "kind": {
+              "type": "string"
+            },
+            "label": {
+              "type": "string"
+            },
+            "tempo_ticket": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "id",
+            "label",
+            "kind",
+            "active"
+          ],
+          "type": [
+            "null",
+            "object"
+          ]
+        },
+        "elapsed_seconds": {
+          "type": "integer"
+        },
+        "event_id": {
+          "type": "integer"
+        },
+        "idle_suspect": {
+          "type": "boolean"
+        },
+        "note": {
+          "type": "string"
+        },
+        "since": {
+          "type": "string"
+        },
+        "today_counted_seconds": {
+          "type": "integer"
+        },
+        "tracking": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "tracking",
+        "elapsed_seconds",
+        "idle_suspect",
+        "today_counted_seconds"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "annotations": {
+      "idempotentHint": false,
+      "openWorldHint": false,
+      "readOnlyHint": true,
+      "title": "Week report"
+    },
+    "description": "Return the time report of one ISO week: seven day reports and totals per context. Totals are unrounded.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "week": {
+          "description": "ISO week such as 2026-W47; default the current week",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "name": "get_week",
+    "outputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "counted_seconds": {
+          "type": "integer"
+        },
+        "days": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "blocks": {
+                "items": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "confirmed": {
+                      "type": "boolean"
+                    },
+                    "context_id": {
+                      "type": "string"
+                    },
+                    "counted": {
+                      "type": "boolean"
+                    },
+                    "duration_seconds": {
+                      "type": "integer"
+                    },
+                    "end": {
+                      "type": "string"
+                    },
+                    "event_id": {
+                      "type": "integer"
+                    },
+                    "idle_suspect": {
+                      "type": "boolean"
+                    },
+                    "kind": {
+                      "type": "string"
+                    },
+                    "label": {
+                      "type": "string"
+                    },
+                    "note": {
+                      "type": "string"
+                    },
+                    "start": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "event_id",
+                    "context_id",
+                    "start",
+                    "end",
+                    "duration_seconds",
+                    "idle_suspect",
+                    "confirmed",
+                    "counted"
+                  ],
+                  "type": "object"
+                },
+                "type": [
+                  "null",
+                  "array"
+                ]
+              },
+              "counted_seconds": {
+                "type": "integer"
+              },
+              "date": {
+                "type": "string"
+              },
+              "events": {
+                "items": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "confirmed": {
+                      "type": "boolean"
+                    },
+                    "context_id": {
+                      "type": "string"
+                    },
+                    "id": {
+                      "type": "integer"
+                    },
+                    "note": {
+                      "type": "string"
+                    },
+                    "source": {
+                      "type": "string"
+                    },
+                    "ts": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "ts",
+                    "context_id",
+                    "source",
+                    "confirmed"
+                  ],
+                  "type": "object"
+                },
+                "type": [
+                  "null",
+                  "array"
+                ]
+              },
+              "gap_seconds": {
+                "type": "integer"
+              },
+              "gaps": {
+                "items": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "duration_seconds": {
+                      "type": "integer"
+                    },
+                    "end": {
+                      "type": "string"
+                    },
+                    "start": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "start",
+                    "end",
+                    "duration_seconds"
+                  ],
+                  "type": "object"
+                },
+                "type": [
+                  "null",
+                  "array"
+                ]
+              },
+              "idle_suspect_seconds": {
+                "type": "integer"
+              },
+              "totals": {
+                "items": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "context_id": {
+                      "type": "string"
+                    },
+                    "counted_seconds": {
+                      "type": "integer"
+                    },
+                    "exportable": {
+                      "type": "boolean"
+                    },
+                    "kind": {
+                      "type": "string"
+                    },
+                    "label": {
+                      "type": "string"
+                    },
+                    "tempo_ticket": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "context_id",
+                    "label",
+                    "kind",
+                    "exportable",
+                    "counted_seconds"
+                  ],
+                  "type": "object"
+                },
+                "type": [
+                  "null",
+                  "array"
+                ]
+              },
+              "weekday": {
+                "type": "string"
+              },
+              "window_end": {
+                "type": "string"
+              },
+              "window_start": {
+                "type": "string"
+              },
+              "working_day": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "date",
+              "weekday",
+              "working_day",
+              "window_start",
+              "window_end",
+              "events",
+              "blocks",
+              "gaps",
+              "totals",
+              "counted_seconds",
+              "idle_suspect_seconds",
+              "gap_seconds"
+            ],
+            "type": "object"
+          },
+          "type": [
+            "null",
+            "array"
+          ]
+        },
+        "end": {
+          "type": "string"
+        },
+        "gap_seconds": {
+          "type": "integer"
+        },
+        "idle_suspect_seconds": {
+          "type": "integer"
+        },
+        "start": {
+          "type": "string"
+        },
+        "totals": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "context_id": {
+                "type": "string"
+              },
+              "counted_seconds": {
+                "type": "integer"
+              },
+              "exportable": {
+                "type": "boolean"
+              },
+              "kind": {
+                "type": "string"
+              },
+              "label": {
+                "type": "string"
+              },
+              "tempo_ticket": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "context_id",
+              "label",
+              "kind",
+              "exportable",
+              "counted_seconds"
+            ],
+            "type": "object"
+          },
+          "type": [
+            "null",
+            "array"
+          ]
+        },
+        "week": {
+          "type": "string"
+        },
+        "working_days": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "week",
+        "start",
+        "end",
+        "days",
+        "totals",
+        "counted_seconds",
+        "idle_suspect_seconds",
+        "gap_seconds",
+        "working_days"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "annotations": {
+      "idempotentHint": false,
+      "openWorldHint": false,
+      "readOnlyHint": true,
+      "title": "List contexts"
+    },
+    "description": "List the contexts (projects, modes, personal, system) you can switch to.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "include_inactive": {
+          "description": "also return parked (inactive) contexts",
+          "type": "boolean"
+        }
+      },
+      "type": "object"
+    },
+    "name": "list_contexts",
+    "outputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "contexts": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "active": {
+                "type": "boolean"
+              },
+              "id": {
+                "type": "string"
+              },
+              "kind": {
+                "type": "string"
+              },
+              "label": {
+                "type": "string"
+              },
+              "tempo_ticket": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "label",
+              "kind",
+              "active"
+            ],
+            "type": "object"
+          },
+          "type": [
+            "null",
+            "array"
+          ]
+        },
+        "count": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "contexts",
+        "count"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "annotations": {
+      "idempotentHint": false,
+      "openWorldHint": false,
+      "readOnlyHint": true,
+      "title": "List ideas"
+    },
+    "description": "List captured ideas, newest first. Personal ideas are never returned.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "limit": {
+          "description": "maximum ideas to return, newest first (default 50, max 200)",
+          "type": "integer"
+        },
+        "status": {
+          "description": "new, triaged, done or archived; default any",
+          "type": "string"
+        },
+        "tag": {
+          "description": "pro or personal; personal ideas are never returned",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "name": "list_ideas",
+    "outputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "count": {
+          "type": "integer"
+        },
+        "ideas": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "context_id": {
+                "type": "string"
+              },
+              "id": {
+                "type": "integer"
+              },
+              "source": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string"
+              },
+              "suggested_project": {
+                "type": "string"
+              },
+              "tag": {
+                "type": "string"
+              },
+              "text": {
+                "type": "string"
+              },
+              "title": {
+                "type": "string"
+              },
+              "ts": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "ts",
+              "tag",
+              "status"
+            ],
+            "type": "object"
+          },
+          "type": [
+            "null",
+            "array"
+          ]
+        }
+      },
+      "required": [
+        "ideas",
+        "count"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "annotations": {
+      "idempotentHint": false,
+      "openWorldHint": false,
+      "readOnlyHint": true,
+      "title": "List items"
+    },
+    "description": "List follow-up items (action, decision, note, followup, risk), newest first. Items of personal and system projects are never returned.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "limit": {
+          "description": "maximum items to return, newest first (default 50, max 200)",
+          "type": "integer"
+        },
+        "project": {
+          "description": "project context id",
+          "type": "string"
+        },
+        "since": {
+          "description": "only items captured on or after this date (YYYY-MM-DD, today, yesterday)",
+          "type": "string"
+        },
+        "status": {
+          "description": "open or done; default any",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "name": "list_items",
+    "outputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "count": {
+          "type": "integer"
+        },
+        "items": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "date": {
+                "type": "string"
+              },
+              "due": {
+                "type": "string"
+              },
+              "fingerprint": {
+                "type": "string"
+              },
+              "id": {
+                "type": "integer"
+              },
+              "origin": {
+                "type": "string"
+              },
+              "project": {
+                "type": "string"
+              },
+              "source": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string"
+              },
+              "summary": {
+                "type": "string"
+              },
+              "type": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "date",
+              "type",
+              "summary",
+              "fingerprint",
+              "status"
+            ],
+            "type": "object"
+          },
+          "type": [
+            "null",
+            "array"
+          ]
+        }
+      },
+      "required": [
+        "items",
+        "count"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": false,
+      "title": "Report an agent event"
+    },
+    "description": "Report the state of a coding agent window (idle, working, action_required, done, error) so STKR can show it and map its workspace to a context.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "event": {
+          "description": "state (default), focused or closed",
+          "type": "string"
+        },
+        "instance": {
+          "description": "stable id of the agent window or session",
+          "type": "string"
+        },
+        "slot": {
+          "description": "Stream Deck slot number, if any",
+          "type": [
+            "null",
+            "integer"
+          ]
+        },
+        "state": {
+          "description": "idle, working, action_required, done or error",
+          "type": "string"
+        },
+        "summary": {
+          "description": "what the agent is doing (cut to 200 characters)",
+          "type": "string"
+        },
+        "window_title": {
+          "description": "title of the agent window",
+          "type": "string"
+        },
+        "workspace": {
+          "description": "workspace folder; mapped to a context when it matches a context workdir",
+          "type": "string"
+        }
+      },
+      "required": [
+        "instance"
+      ],
+      "type": "object"
+    },
+    "name": "report_agent_event",
+    "outputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "closed": {
+          "type": "boolean"
+        },
+        "context_id": {
+          "type": "string"
+        },
+        "context_label": {
+          "type": "string"
+        },
+        "instance": {
+          "type": "string"
+        },
+        "mapped": {
+          "type": "boolean"
+        },
+        "state": {
+          "type": "string"
+        },
+        "switched": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "mapped",
+        "switched",
+        "closed"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": false,
+      "title": "Stop tracking"
+    },
+    "description": "Stop tracking time (switches to the off context).",
+    "inputSchema": {
+      "additionalProperties": false,
+      "type": "object"
+    },
+    "name": "stop",
+    "outputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "created": {
+          "type": "boolean"
+        },
+        "event": {
+          "additionalProperties": false,
+          "properties": {
+            "confirmed": {
+              "type": "boolean"
+            },
+            "context_id": {
+              "type": "string"
+            },
+            "id": {
+              "type": "integer"
+            },
+            "note": {
+              "type": "string"
+            },
+            "source": {
+              "type": "string"
+            },
+            "ts": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "id",
+            "ts",
+            "context_id",
+            "source",
+            "confirmed"
+          ],
+          "type": "object"
+        }
+      },
+      "required": [
+        "event",
+        "created"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": false,
+      "title": "Switch context"
+    },
+    "description": "Start tracking time on a context (project or mode). Ends the current block. Switching to the context already active is a no-op.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "context": {
+          "description": "context id to start tracking, for example a project id; see list_contexts",
+          "type": "string"
+        },
+        "note": {
+          "description": "optional short note for the time block",
+          "type": "string"
+        }
+      },
+      "required": [
+        "context"
+      ],
+      "type": "object"
+    },
+    "name": "switch_context",
+    "outputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "created": {
+          "type": "boolean"
+        },
+        "event": {
+          "additionalProperties": false,
+          "properties": {
+            "confirmed": {
+              "type": "boolean"
+            },
+            "context_id": {
+              "type": "string"
+            },
+            "id": {
+              "type": "integer"
+            },
+            "note": {
+              "type": "string"
+            },
+            "source": {
+              "type": "string"
+            },
+            "ts": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "id",
+            "ts",
+            "context_id",
+            "source",
+            "confirmed"
+          ],
+          "type": "object"
+        }
+      },
+      "required": [
+        "event",
+        "created"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": false,
+      "title": "Triage an idea"
+    },
+    "description": "Change the status, project, tag or title of an idea. Only the fields you pass change.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "description": "idea id from list_ideas",
+          "type": "integer"
+        },
+        "project": {
+          "description": "project context id to file the idea under; empty clears it",
+          "type": [
+            "null",
+            "string"
+          ]
+        },
+        "status": {
+          "description": "new, triaged, done or archived",
+          "type": [
+            "null",
+            "string"
+          ]
+        },
+        "tag": {
+          "description": "pro or personal",
+          "type": [
+            "null",
+            "string"
+          ]
+        },
+        "title": {
+          "description": "short title",
+          "type": [
+            "null",
+            "string"
+          ]
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "type": "object"
+    },
+    "name": "triage_idea",
+    "outputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "context_id": {
+          "type": "string"
+        },
+        "id": {
+          "type": "integer"
+        },
+        "source": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "suggested_project": {
+          "type": "string"
+        },
+        "tag": {
+          "type": "string"
+        },
+        "text": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "ts": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "ts",
+        "tag",
+        "status"
+      ],
+      "type": "object"
+    }
+  }
+]

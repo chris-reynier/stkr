@@ -34,6 +34,7 @@ stkr [flags]
 * [stkr import](stkr_import.md)	 - Import the AI answer (stkr-brief / stkr-close block) from the clipboard, a file or stdin
 * [stkr import-legacy](stkr_import-legacy.md)	 - Archive files from the earlier Python version (copy only)
 * [stkr links](stkr_links.md)	 - List or search saved links
+* [stkr mcp](stkr_mcp.md)	 - Run the MCP server on stdin/stdout for coding agents
 * [stkr now](stkr_now.md)	 - Show the current context and today's total
 * [stkr prompts](stkr_prompts.md)	 - Manage the Start Day and Close Day prompt templates
 * [stkr serve](stkr_serve.md)	 - Run the local HTTP server and background jobs
