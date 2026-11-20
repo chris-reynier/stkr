@@ -11,7 +11,13 @@ Every external interface of STKR is documented here: HTTP payloads, file formats
 
 ## Index
 
-No contracts have been published yet. They are added with the features that introduce them:
+Published:
+
+| File | Covers |
+|---|---|
+| [`time-reports.md`](time-reports.md) | JSON of switch, now, day, week and contexts; week CSV (v1) |
+
+Added with the features that introduce them:
 
 | File | Covers |
 |---|---|

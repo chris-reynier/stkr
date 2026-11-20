@@ -10,7 +10,9 @@ Status: early development (0.x). Windows first, with Linux and macOS builds.
 |---|---|
 | CLI skeleton: `version`, `config show/path/set` | available |
 | Configuration file with validation | available |
-| Context switching and time blocks | planned |
+| Context switching, time blocks, idle and gap detection (`switch`, `stop`, `now`, `day`, `week`) | available |
+| Contexts (`ctx list/add/set/park/activate`) | available |
+| Backups (`backup`) and legacy archive (`import-legacy`) | available |
 | Local web UI | planned |
 | Stream Deck and agent integration | planned |
 | Daily brief and close | planned |
@@ -27,7 +29,11 @@ Build from source (Go 1.27 or newer):
 go build -o stkr ./cmd/stkr
 ./stkr version
 ./stkr config show
-./stkr config set port 8080
+./stkr ctx add acme --label "ACME"
+./stkr switch acme
+./stkr now
+./stkr stop
+./stkr day
 ```
 
 On Windows the binary is `stkr.exe`. To keep test data away from your real data, set `STKR_HOME` to another folder.

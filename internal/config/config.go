@@ -9,6 +9,8 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"time"
+	_ "time/tzdata" // embedded zone database so timezone works on any machine
 
 	"gopkg.in/yaml.v3"
 
@@ -138,6 +140,14 @@ func (c *Config) Validate() error {
 			bad("%s must be HH:MM (got %q)", tv.key, tv.val)
 		}
 	}
+	if hhmm.MatchString(c.DayStart) && hhmm.MatchString(c.DayEnd) && c.DayEnd <= c.DayStart {
+		bad("day_end must be later than day_start (got %s-%s)", c.DayStart, c.DayEnd)
+	}
+	if c.Timezone != "" {
+		if _, err := time.LoadLocation(c.Timezone); err != nil {
+			bad("timezone %q is not a known IANA time zone", c.Timezone)
+		}
+	}
 	if c.IdleGapMinutes < 1 {
 		bad("idle_gap_minutes must be at least 1")
 	}
@@ -163,6 +173,18 @@ func (c *Config) Validate() error {
 		return domain.New(domain.ErrInvalid, "invalid configuration: "+strings.Join(problems, "; "))
 	}
 	return nil
+}
+
+// Location returns the configured time zone (the system zone when empty).
+func (c *Config) Location() (*time.Location, error) {
+	if c.Timezone == "" {
+		return time.Local, nil
+	}
+	loc, err := time.LoadLocation(c.Timezone)
+	if err != nil {
+		return nil, domain.New(domain.ErrInvalid, fmt.Sprintf("timezone %q is not a known IANA time zone", c.Timezone))
+	}
+	return loc, nil
 }
 
 func contains(list []string, s string) bool {

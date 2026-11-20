@@ -21,9 +21,9 @@ You can also edit the file by hand. Unknown keys are ignored with a warning. Inv
 | Key | Default | Meaning |
 |---|---|---|
 | `port` | `7878` | Local web/API port (1-65535). |
-| `timezone` | `""` | IANA name such as `Europe/Oslo`. Empty means the system time zone. |
+| `timezone` | `""` | IANA name such as `Europe/Oslo`. Empty means the system time zone. Decides which day a time belongs to. |
 | `day_start` | `09:00` | Start of working hours (`HH:MM`). |
-| `day_end` | `17:00` | End of working hours (`HH:MM`). |
+| `day_end` | `17:00` | End of working hours (`HH:MM`). Must be later than `day_start`. The last block of a day ends here. |
 | `close_reminder` | `16:45` | Time of the end-of-day reminder (`HH:MM`). |
 | `idle_gap_minutes` | `90` | Gap after which a block is treated as idle until confirmed. |
 | `rounding_hours` | `0.25` | Rounding step applied when exporting time. Must be above 0. |
