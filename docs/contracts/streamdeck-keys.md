@@ -12,6 +12,10 @@ Which key calls which endpoint and which image it shows. All URLs are on `http:/
 | Start Day | `POST /api/day/start` | none | available |
 | Close Day | `POST /api/close/prompt?paste=1` | `GET /img/key/close.png` | available |
 | Import | `POST /api/import/clipboard` | `GET /img/key/import.png` | available |
+| Idea (voice) | `POST /api/idea/record/toggle` | `GET /img/key/idea.png` | available |
+| Ideas inbox | none | `GET /img/key/ideas-inbox.png` | available |
+| Bookmark | `POST /api/bookmark/from-clipboard` | none | available |
+| Meeting action or decision | `POST /api/idea` with `{"text":"...","type":"action"}` (or `decision`) | none | available |
 
 All images are 144x144 PNG, generated locally, `Cache-Control: no-store`.
 
@@ -62,3 +66,18 @@ The Import key. Pressing it sends `POST /api/import/clipboard`; the image shows 
 ## Start Day
 
 `POST /api/day/start?src=deck` logs `planning`, copies the Start Day prompt to the clipboard and writes the digest file. It has no image. Open your AI chat, paste (Ctrl+V), then press the Import key with the answer copied.
+
+## `/img/key/idea.png`
+
+The voice idea key. Pressing it sends `POST /api/idea/record/toggle`; the image follows the recorder of the running `stkr serve`.
+
+| State | Look |
+|---|---|
+| Idle | grey, `IDEA` / `record` |
+| Recording | red, `IDEA` / `REC` / `tap to stop` |
+
+A press while ffmpeg is missing answers `503`, and the key stays grey.
+
+## `/img/key/ideas-inbox.png`
+
+The number of ideas with status `new` and tag `pro` (personal ideas are not counted). Blue `IDEAS` / `<n> new` when there are some, grey `IDEAS` / `0 new` otherwise. The key has no press action; open `/ui/ideas` to triage.

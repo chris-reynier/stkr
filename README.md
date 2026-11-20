@@ -18,7 +18,7 @@ Status: early development (0.x). Windows first, with Linux and macOS builds.
 | Stream Deck context keys and current-context image | available |
 | Agents hub (`agents`, `/ui/agents`): next instance, window focus, agents key image | available |
 | Daily loop: `start-day`, `close`, `import`, `prompts init`, project log export, close reminder | available |
-| Voice and phone-inbox capture | planned |
+| Capture: ideas, voice notes, phone inbox, meeting actions, bookmarks (`idea`, `ideas`, `bookmark`, `links`) | available |
 | AI cleanup and classification (local or CLI-based) | planned |
 | MCP server | planned |
 | Self-update | planned |
