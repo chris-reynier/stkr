@@ -14,7 +14,7 @@ Status: early development (0.x). Windows first, with Linux and macOS builds.
 | Contexts (`ctx list/add/set/park/activate`) | available |
 | Backups (`backup`) and legacy archive (`import-legacy`) | available |
 | Local HTTP server (`serve`): switch, stop, now and contexts API, key image, daily backup job | available |
-| Local web UI | planned |
+| Local web UI: Today, Week, Settings, Tempo CSV export (`/ui/today`) | available |
 | Stream Deck context keys and current-context image | available |
 | Stream Deck agent integration | planned |
 | Daily brief and close | planned |

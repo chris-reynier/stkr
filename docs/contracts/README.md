@@ -17,12 +17,12 @@ Published:
 |---|---|
 | [`time-reports.md`](time-reports.md) | JSON of switch, now, day, week and contexts; week CSV (v1) |
 | [`http-api.md`](http-api.md) | HTTP routes: parameters, request and response JSON, errors (v1) |
+| [`tempo-csv.md`](tempo-csv.md) | Tempo CSV columns, rounding, ticket mapping (v1) |
 
 Added with the features that introduce them:
 
 | File | Covers |
 |---|---|
-| `tempo-csv.md` | Time export CSV columns, rounding, ticket mapping |
 | `agent-events.md` | Agent plugin events and states |
 | `streamdeck-keys.md` | Stream Deck key to endpoint map, image states |
 | `import-fences.md` | Text blocks used to import daily briefs and closes |

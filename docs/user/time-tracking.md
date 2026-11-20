@@ -74,10 +74,11 @@ Look at a week (ISO weeks, Monday to Sunday):
 ```
 stkr week                 # this week
 stkr week 2026-W47
-stkr week 2026-W47 --csv > week.csv
+stkr week 2026-W47 --csv > week.csv      # Tempo import file
+stkr week 2026-W47 --csv --raw    # unrounded hours per context
 ```
 
-`--csv` prints one line per day and exportable context with unrounded hours. Personal and system contexts are left out. The format is described in [the week CSV contract](../contracts/time-reports.md).
+`--csv` prints the Tempo import file: one line per day and ticket, with hours rounded to `rounding_hours` after summing. Personal and system contexts are left out. Contexts with time but no ticket are listed on stderr and not written. See [Web UI](web-ui.md) and [the Tempo CSV contract](../contracts/tempo-csv.md). `--csv --raw` prints unrounded hours per day and context ([contract](../contracts/time-reports.md)).
 
 Every command accepts `--json`. The JSON shapes are in [the time reports contract](../contracts/time-reports.md).
 
