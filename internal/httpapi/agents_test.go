@@ -246,3 +246,7 @@ func TestAgentEventPerf(t *testing.T) {
 		t.Errorf("agent event p95 = %v, budget 100ms", got)
 	}
 }
+
+func (w *fakeWin) PasteInto(ctx context.Context, title string, _ bool, wait time.Duration) error {
+	return w.Focus(ctx, title, wait)
+}

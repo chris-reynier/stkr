@@ -1,6 +1,7 @@
 package web
 
 import (
+	"fmt"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -30,9 +31,14 @@ type todayData struct {
 	Rows       []eventRow
 	Contexts   []domain.Context // all, for the edit select
 	Switchable []domain.Context // active, not "off"
+	Plan       domain.Day       // top three and saved flags of the day
+	Items      []domain.Item    // items captured on the day
+	Close      service.CloseState
+	HasPaste   bool // agent_window_title is set
 }
 
 func mountToday(ui *UI) {
+	mountDaily(ui)
 	ui.Get("GET /ui/today", ui.today)
 	ui.Post("POST /ui/switch", func(r *http.Request, _ string) (string, error) {
 		_, err := ui.Svc.Switch(r.Context(), r.PostFormValue("ctx"), domain.SourceUI, "")
@@ -170,6 +176,19 @@ func (u *UI) today(w http.ResponseWriter, r *http.Request) {
 			d.Switchable = append(d.Switchable, c)
 		}
 	}
+	if d.Plan, err = u.Svc.DayPlan(ctx, rep.Date); err != nil {
+		u.Fail(w, err)
+		return
+	}
+	if d.Items, err = u.Svc.ItemsOn(ctx, rep.Date); err != nil {
+		u.Fail(w, err)
+		return
+	}
+	if d.Close, err = u.Svc.CloseState(ctx); err != nil {
+		u.Fail(w, err)
+		return
+	}
+	d.HasPaste = u.Svc.Config().AgentWindowTitle != ""
 	blocks := map[int64]*domain.Block{}
 	for i := range rep.Blocks {
 		blocks[rep.Blocks[i].EventID] = &rep.Blocks[i]
@@ -185,4 +204,33 @@ func (u *UI) today(w http.ResponseWriter, r *http.Request) {
 		d.Rows = append(d.Rows, row)
 	}
 	u.Render(w, r, "today", "Today", d)
+}
+
+// mountDaily registers the Start Day, Close Day and import actions.
+func mountDaily(ui *UI) {
+	ui.Post("POST /ui/import", func(r *http.Request, _ string) (string, error) {
+		res, err := ui.Svc.Import(r.Context(), r.PostFormValue("text"), service.ViaUI)
+		if err != nil {
+			return "", err
+		}
+		return res.Summary(), nil
+	})
+	ui.Post("POST /ui/day/start", func(r *http.Request, _ string) (string, error) {
+		res, err := ui.Svc.StartDay(r.Context(), service.StartDayOptions{Source: domain.SourceUI, Clipboard: true})
+		if err != nil {
+			return "", err
+		}
+		return fmt.Sprintf("Start Day prompt copied (%d characters). Paste it into your AI chat, then import the answer below.", res.Chars), nil
+	})
+	ui.Post("POST /ui/close", func(r *http.Request, _ string) (string, error) {
+		paste := r.PostFormValue("paste") == "1"
+		res, err := ui.Svc.ClosePrompt(r.Context(), service.CloseOptions{Clipboard: true, Paste: paste})
+		if err != nil {
+			return "", err
+		}
+		if res.Pasted {
+			return fmt.Sprintf("Close Day prompt copied and pasted (%d characters).", res.Chars), nil
+		}
+		return fmt.Sprintf("Close Day prompt copied (%d characters). Paste it into your AI chat, then import the answer below.", res.Chars), nil
+	})
 }

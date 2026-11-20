@@ -107,6 +107,7 @@ var funcs = template.FuncMap{
 		return fmt.Sprintf("%.2f", h)
 	},
 	"join": strings.Join,
+	"inc":  func(i int) int { return i + 1 },
 }
 
 // Mount registers the UI routes on mux. Register every page before calling it.

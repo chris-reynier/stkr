@@ -32,7 +32,7 @@ func Open(ctx context.Context, home string, cfg *config.Config, opts Options) (*
 		lg = slog.Default()
 	}
 	svc, err := service.Open(ctx, filepath.Join(home, DBName), clk, cfg,
-		service.Deps{BackupDir: filepath.Join(home, "backups"), ConfigPath: config.Path(home), Logger: lg})
+		service.Deps{BackupDir: filepath.Join(home, "backups"), ConfigPath: config.Path(home), PromptsDir: filepath.Join(home, "prompts"), Logger: lg})
 	if err != nil {
 		return nil, nil, err
 	}

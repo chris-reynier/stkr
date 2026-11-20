@@ -18,3 +18,7 @@ func NewWindows() Windows { return noWindows{} }
 func (noWindows) Focus(context.Context, string, time.Duration) error {
 	return domain.New(domain.ErrUnavailable, "window focus is only supported on Windows")
 }
+
+func (noWindows) PasteInto(context.Context, string, bool, time.Duration) error {
+	return domain.New(domain.ErrUnavailable, "paste is only supported on Windows")
+}

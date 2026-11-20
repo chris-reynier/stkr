@@ -505,3 +505,7 @@ func TestAgentLogsNoSummary(t *testing.T) {
 		t.Error("summary leaked into logs")
 	}
 }
+
+func (w *fakeWin) PasteInto(ctx context.Context, title string, _ bool, wait time.Duration) error {
+	return w.Focus(ctx, title, wait)
+}

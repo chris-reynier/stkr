@@ -17,7 +17,7 @@ Status: early development (0.x). Windows first, with Linux and macOS builds.
 | Local web UI: Today, Week, Settings, Tempo CSV export (`/ui/today`) | available |
 | Stream Deck context keys and current-context image | available |
 | Agents hub (`agents`, `/ui/agents`): next instance, window focus, agents key image | available |
-| Daily brief and close | planned |
+| Daily loop: `start-day`, `close`, `import`, `prompts init`, project log export, close reminder | available |
 | Voice and phone-inbox capture | planned |
 | AI cleanup and classification (local or CLI-based) | planned |
 | MCP server | planned |

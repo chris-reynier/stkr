@@ -113,6 +113,29 @@ Routes for coding agent instances. Payloads, states, ordering rules and the `nex
 
 Errors follow the table above; `invalid` (400) covers bad JSON and bad field values.
 
+### Daily loop routes
+
+The Start Day, Close Day, import and paste routes. Formats: [import-fences.md](import-fences.md), [onedrive-export.md](onedrive-export.md), [paste-helper.md](paste-helper.md). All are `POST`. The text of the clipboard, of import bodies and of prompts is never logged.
+
+| Route | Purpose |
+|---|---|
+| `POST /api/day/start` | Log `planning`, build the digest (at most 2,500 characters), render the Start Day prompt, write `_daily/daily-digest.md` (when `onedrive_dir` is set) and copy the prompt to the clipboard. `?clipboard=0` skips the clipboard. Response `{"ok":true,"chars":N,"clipboard":true,"exported":"_daily/daily-digest.md","warnings":[...]}`; `chars` is the length of the whole prompt. `503` `unavailable` when the clipboard cannot be written (planning is logged and the digest file is written anyway). A time switch uses source `deck` with `?src=deck` or the `X-STKR-Source: deck` header. `409` when the `planning` context is parked. |
+| `POST /api/close/prompt` | Build the Close Day prompt (today's time, items, ideas, agent state, morning top 3) and copy it. `?paste=1` then pastes it with the paste helper (`window`, `enter` as for `/api/paste`). `?clipboard=0` skips the clipboard when not pasting. Response `{"ok":true,"chars":N,"clipboard":true,"pasted":true}`. Paste errors are those of `/api/paste`. |
+| `POST /api/import/clipboard` | Read the clipboard and import it. |
+| `POST /api/import` | Import the request body (`text/plain`, any content type is accepted, up to 1 MiB; the text itself is limited to 256 KiB). |
+| `POST /api/paste?window=<title>&enter=0\|1` | Paste the clipboard into a window. `{"ok":true}`, or `404` `window_not_found`. |
+| `GET /img/key/close.png` | Close key: grey, yellow/dark blinking once per second while the close is due, green once saved. |
+| `GET /img/key/import.png` | Import key: green, yellow or red for 10 seconds after an import, grey otherwise. |
+
+Import responses (`200`) have the shape in [import-fences.md](import-fences.md#result). A text without a usable record gives `422`:
+
+```json
+{"ok": false, "state": "fail", "error": "no_valid_block", "message": "no stkr-brief or stkr-close block with valid lines was found; nothing was imported",
+ "redirect": "/ui/today#import", "format": "pipe", "items_created": 0, "ignored": 0, "warnings": [], "exported": []}
+```
+
+The clipboard-based routes answer `503` `unavailable` when the system has no clipboard. `404` with `error` `window_not_found` is specific to routes that paste (`/api/paste`, `/api/close/prompt?paste=1`).
+
 ## Web UI routes
 
 The web UI is part of the same server and follows the same Host and Origin guards. It answers with HTML, not JSON, and is meant for browsers. Pages work without JavaScript.
@@ -120,7 +143,7 @@ The web UI is part of the same server and follows the same Host and Origin guard
 | Route | Purpose |
 |---|---|
 | `GET /` and `GET /ui/` | `303` redirect to `/ui/today` |
-| `GET /ui/today?d=YYYY-MM-DD` | Timeline, gaps and totals of a day (default today) |
+| `GET /ui/today?d=YYYY-MM-DD` | Timeline, gaps, totals, top 3, import box and items of a day (default today) |
 | `GET /ui/week?w=YYYY-Www` | Hours per context and day, tickets, unmapped contexts (default this week) |
 | `GET /ui/agents` | Agent instances, Go/Queue buttons, unknown workspaces |
 | `GET /ui/settings` | Contexts and configuration forms |
@@ -137,6 +160,9 @@ Form actions are `POST` with `application/x-www-form-urlencoded`. Every one answ
 | `POST /ui/event/{id}/merge` | `other` (id of the following event) |
 | `POST /ui/event/{id}/delete` | none |
 | `POST /ui/event/{id}/confirm` | `confirmed` (`1` or `0`) |
+| `POST /ui/day/start` | none (copies the Start Day prompt) |
+| `POST /ui/close` | `paste` (`1` to paste into the agent window) |
+| `POST /ui/import` | `text` (the AI answer). Failure flashes the error; `next` is normally `/ui/today#import` |
 | `POST /ui/agents/go`, `.../queue` | `id` (instance) |
 | `POST /ui/agents/go-next`, `.../ack-done` | none |
 | `POST /ui/agents/map` | `workspace`, `context` (sets the context workdir) |

@@ -16,6 +16,11 @@ type Windows interface {
 	// there is no matching window and domain.ErrUnavailable when the system
 	// cannot do this.
 	Focus(ctx context.Context, titleContains string, wait time.Duration) error
+	// PasteInto waits up to wait for a window whose title contains
+	// titleContains, focuses it and sends Ctrl+V (then Enter when enter is
+	// set). It returns domain.ErrNotFound when no such window appears and
+	// domain.ErrUnavailable when the system cannot do this.
+	PasteInto(ctx context.Context, titleContains string, enter bool, wait time.Duration) error
 }
 
 // Launcher opens things in other programs.

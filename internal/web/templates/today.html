@@ -81,7 +81,38 @@
 {{else}}<p class="empty">Nothing counted yet.</p>{{end}}
 </section>
 
-<section id="top3" class="card"><h2>Top 3</h2><p class="empty">Not set up yet.</p></section>
-<section id="import" class="card"><h2>Import</h2><p class="empty">Not available yet.</p></section>
-<section id="items" class="card"><h2>Today's items</h2><p class="empty">No items yet.</p></section>
+{{if .IsToday}}
+<section id="daily" class="card">
+  <h2>Daily loop</h2>
+  {{if .Close.Due}}<p class="flash error" role="status">It is past close time and today is not closed yet. Use Close Day, then import the answer.</p>{{end}}
+  <form method="post" action="/ui/day/start" class="inline"><input type="hidden" name="next" value="{{.Self}}"><button>Start Day</button></form>
+  <form method="post" action="/ui/close" class="inline"><input type="hidden" name="next" value="{{.Self}}"><button>Close Day</button>
+    {{if .HasPaste}}<label><input type="checkbox" name="paste" value="1"> paste into the AI window</label>{{end}}</form>
+  <p class="muted">Both copy a prompt to the clipboard. Paste it into your AI chat and import the answer in the box below.</p>
+</section>
+{{end}}
+
+<section id="top3" class="card"><h2>Top 3 <small>{{if .Plan.BriefSaved}}brief saved{{end}}{{if and .Plan.BriefSaved .Plan.CloseSaved}}, {{end}}{{if .Plan.CloseSaved}}close saved{{end}}</small></h2>
+{{if or (index .Plan.Top 0) (index .Plan.Top 1) (index .Plan.Top 2)}}<ol>
+{{range $i, $t := .Plan.Top}}{{if $t}}<li value="{{inc $i}}">{{$t}}</li>{{end}}{{end}}</ol>
+{{else}}<p class="empty">No priorities saved for this day.</p>{{end}}
+</section>
+
+{{if .IsToday}}
+<section id="import" class="card"><h2>Import</h2>
+  <form method="post" action="/ui/import" class="stack">
+    <input type="hidden" name="next" value="/ui/today#import">
+    <label>Paste the AI answer (a <code>stkr-brief v1</code> or <code>stkr-close v1</code> block)
+      <textarea name="text" rows="8" required spellcheck="false"></textarea></label>
+    <div><button>Import</button></div>
+  </form>
+</section>
+{{end}}
+
+<section id="items" class="card"><h2>Items <small>{{.Rep.Date}}</small></h2>
+{{if .Items}}<table><thead><tr><th>Type</th><th>Project</th><th>Summary</th><th>Due</th><th>Status</th></tr></thead><tbody>
+{{range .Items}}<tr><td>{{.Type}}</td><td>{{.Project}}</td><td>{{.Summary}}</td><td>{{.Due}}</td><td>{{if eq .Status "done"}}<span class="tag ok">done</span>{{else}}{{.Status}}{{end}}</td></tr>{{end}}
+</tbody></table>
+{{else}}<p class="empty">No items captured on this day.</p>{{end}}
+</section>
 {{end}}{{end}}

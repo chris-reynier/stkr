@@ -8,6 +8,7 @@ STKR is a local-first task stack manager. These pages explain how to use it.
 - [Server](server.md): run `stkr serve`, autostart on Windows, port.
 - [Web UI](web-ui.md): Today, Week and Settings pages, edit your timeline, export Tempo CSV.
 - [Stream Deck](stream-deck.md): switch contexts from keys and show the current context.
+- [Daily loop](daily-loop.md): Start Day, Close Day, import the AI answer, project log files, reminders.
 - [Agents](agents.md): see all coding agent windows, jump to the one that needs you.
 - [Backup and restore](backup-restore.md): backups and how to restore one.
 - [Legacy import](legacy-import.md): keep a copy of data from the earlier Python version.

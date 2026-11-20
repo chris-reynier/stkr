@@ -40,6 +40,10 @@ type Deps struct {
 	// the platform implementations (Launcher from the launch.* config keys).
 	Windows  platform.Windows
 	Launcher platform.Launcher
+	// Clipboard is the system clipboard (nil uses platform.NewClipboard).
+	Clipboard platform.Clipboard
+	// PromptsDir holds user overrides of the prompt templates. Empty means defaults only.
+	PromptsDir string
 }
 
 // Service is the application facade.
@@ -55,6 +59,8 @@ type Service struct {
 	log        *slog.Logger
 	windows    platform.Windows
 	launcher   platform.Launcher
+	clipboard  platform.Clipboard
+	promptsDir string
 }
 
 // New builds a Service. cfg must be valid.
@@ -82,9 +88,15 @@ func New(st *store.Store, clk clock.Clock, cfg *config.Config, deps Deps) (*Serv
 	if lau == nil {
 		lau = platform.NewLauncher(cfg.Launch.Command, cfg.Launch.Args)
 	}
+	clip := deps.Clipboard
+	if clip == nil {
+		clip = platform.NewClipboard()
+	}
 	return &Service{
 		windows:    win,
 		launcher:   lau,
+		clipboard:  clip,
+		promptsDir: deps.PromptsDir,
 		st:         st,
 		clk:        clk,
 		cfg:        cfg,
