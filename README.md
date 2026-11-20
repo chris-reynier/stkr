@@ -13,8 +13,10 @@ Status: early development (0.x). Windows first, with Linux and macOS builds.
 | Context switching, time blocks, idle and gap detection (`switch`, `stop`, `now`, `day`, `week`) | available |
 | Contexts (`ctx list/add/set/park/activate`) | available |
 | Backups (`backup`) and legacy archive (`import-legacy`) | available |
+| Local HTTP server (`serve`): switch, stop, now and contexts API, key image, daily backup job | available |
 | Local web UI | planned |
-| Stream Deck and agent integration | planned |
+| Stream Deck context keys and current-context image | available |
+| Stream Deck agent integration | planned |
 | Daily brief and close | planned |
 | Voice and phone-inbox capture | planned |
 | AI cleanup and classification (local or CLI-based) | planned |
@@ -34,6 +36,7 @@ go build -o stkr ./cmd/stkr
 ./stkr now
 ./stkr stop
 ./stkr day
+./stkr serve      # local HTTP server for Stream Deck and scripts
 ```
 
 On Windows the binary is `stkr.exe`. To keep test data away from your real data, set `STKR_HOME` to another folder.
