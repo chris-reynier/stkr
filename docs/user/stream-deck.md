@@ -37,6 +37,18 @@ STKR can also gather the state of your coding agents (VS Code windows) and jump 
 | Agents | `POST http://127.0.0.1:7878/api/agents/next/go` with header `X-STKR-Source: deck` | `http://127.0.0.1:7878/img/agents.png` |
 | Acknowledge done (optional) | `POST http://127.0.0.1:7878/api/agents/ack-done` | none |
 
+## Daily loop keys
+
+Start Day, Close Day and Import keys. See [Daily loop](daily-loop.md).
+
+| Key | Action | Image |
+|---|---|---|
+| Start Day | `POST http://127.0.0.1:7878/api/day/start?src=deck` | none |
+| Close Day | `POST http://127.0.0.1:7878/api/close/prompt?paste=1&src=deck` | `http://127.0.0.1:7878/img/key/close.png` (blinks yellow when the close is due; refresh every second) |
+| Import | `POST http://127.0.0.1:7878/api/import/clipboard` | `http://127.0.0.1:7878/img/key/import.png` (green, yellow or red for 10 seconds) |
+
+Start Day copies the prompt; open your AI chat and paste. Close Day copies the prompt and pastes it into the window named by `agent_window_title` (Windows only; drop `paste=1` to copy only).
+
 The full key table is in the [Stream Deck keys contract](../contracts/streamdeck-keys.md).
 
 ### Forwarding events from a plugin
@@ -87,6 +99,8 @@ export function sync(instances: Array<{ instance: string; state: string; slot: n
 | Key | Default | Meaning |
 |---|---|---|
 | `port` | `7878` | Port in the URLs above. |
+| `close_reminder` | `16:45` | When the Close Day key starts to blink. |
+| `agent_window_title` | `""` | Window that Close Day pastes into. |
 
 ## Troubleshooting
 

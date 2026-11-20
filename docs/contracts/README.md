@@ -20,6 +20,9 @@ Published:
 | [`tempo-csv.md`](tempo-csv.md) | Tempo CSV columns, rounding, ticket mapping (v1) |
 | [`agent-events.md`](agent-events.md) | Agent event and sync payloads, states, state map, next-instance order (v1) |
 | [`streamdeck-keys.md`](streamdeck-keys.md) | Stream Deck key to endpoint to image table (v1) |
+| [`import-fences.md`](import-fences.md) | `stkr-brief` and `stkr-close` text blocks, fingerprints, pipe fallback (v1) |
+| [`onedrive-export.md`](onedrive-export.md) | Project log files: section ownership, atomic rewrite (v1) |
+| [`paste-helper.md`](paste-helper.md) | `POST /api/paste`: window title, Enter, errors (v1) |
 
 Added with the features that introduce them:
 
@@ -27,9 +30,6 @@ Added with the features that introduce them:
 |---|---|
 | `agent-events.md` | Agent plugin events and states |
 | `streamdeck-keys.md` | Stream Deck key to endpoint map, image states |
-| `import-fences.md` | Text blocks used to import daily briefs and closes |
-| `onedrive-export.md` | Layout of the exported log |
-| `paste-helper.md` | Window title and launch parameters |
 | `phone-inbox.md` | File naming and tag rules for phone captures |
 | `ai-providers.md` | AI provider protocol and JSON schemas |
 | `mcp-tools.md` | MCP tool names and schemas |

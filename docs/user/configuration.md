@@ -24,10 +24,10 @@ You can also edit the file by hand. Unknown keys are ignored with a warning. Inv
 | `timezone` | `""` | IANA name such as `Europe/Oslo`. Empty means the system time zone. Decides which day a time belongs to. |
 | `day_start` | `09:00` | Start of working hours (`HH:MM`). |
 | `day_end` | `17:00` | End of working hours (`HH:MM`). Must be later than `day_start`. The last block of a day ends here. |
-| `close_reminder` | `16:45` | Time of the end-of-day reminder (`HH:MM`). |
+| `close_reminder` | `16:45` | After this time on a working day, an unsaved close makes the Close key blink and shows a notice on Today (`HH:MM`). See [Daily loop](daily-loop.md). |
 | `idle_gap_minutes` | `90` | Gap after which a block is treated as idle until confirmed. |
 | `rounding_hours` | `0.25` | Rounding step applied when exporting time. Must be above 0. |
-| `onedrive_dir` | `""` | Export folder. Empty disables export. |
+| `onedrive_dir` | `""` | Folder for the project log files and the Start Day digest. Empty disables export. See [Daily loop](daily-loop.md). |
 | `phone_inbox` | `""` | Folder watched for phone captures. Empty disables it. |
 | `open_notebook_on_switch` | `false` | Open a context's notebook when you switch to it. |
 | `mic_device` | `""` | Microphone name for voice capture. Empty means the default device. |
@@ -49,7 +49,7 @@ You can also edit the file by hand. Unknown keys are ignored with a warning. Inv
 | `ollama.model` | `llama3.2` | Model name. |
 | `ollama.batch_minutes` | `30` | How often queued items are classified. |
 | `mcp.enabled` | `true` | Allow the MCP server command. |
-| `agent_window_title` | `""` | Default window title for agent windows. |
+| `agent_window_title` | `""` | Part of the title of your AI window: the default for pasting prompts (`close --paste`, `/api/paste`) and the last-resort window to focus for agents. |
 | `launch.command` | `code` | Program used to open a workspace. |
 | `launch.args` | `{path}` | Its arguments; `{path}` is the workspace folder. |
 | `update.check` | `true` | Check for new releases (one request to GitHub). |
