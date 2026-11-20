@@ -55,6 +55,10 @@ type Whisper struct {
 type AI struct {
 	Provider       string `yaml:"provider"`
 	TimeoutSeconds int    `yaml:"timeout_seconds"`
+	// BatchMinutes is how often serve sorts pending ideas, for every provider.
+	BatchMinutes int `yaml:"batch_minutes"`
+	// PlanStartDay adds an AI suggestion to the Start Day prompt (5 s budget).
+	PlanStartDay bool `yaml:"plan_start_day"`
 }
 
 // Agent configures an exec-based AI provider.
@@ -67,10 +71,12 @@ type Agent struct {
 
 // Ollama configures the Ollama HTTP provider.
 type Ollama struct {
-	Enabled      bool   `yaml:"enabled"`
-	URL          string `yaml:"url"`
-	Model        string `yaml:"model"`
-	BatchMinutes int    `yaml:"batch_minutes"`
+	Enabled bool   `yaml:"enabled"`
+	URL     string `yaml:"url"`
+	Model   string `yaml:"model"`
+	// BatchMinutes is the old name of ai.batch_minutes. It is read from old
+	// files and by `config set ollama.batch_minutes`, never written.
+	BatchMinutes int `yaml:"batch_minutes,omitempty"`
 }
 
 // MCP configures the MCP server.
@@ -112,16 +118,18 @@ func Default() *Config {
 		RoundingHours:  0.25,
 		FFmpeg:         "ffmpeg",
 		Whisper:        Whisper{Bin: "whisper-cli"},
-		AI:             AI{Provider: "none", TimeoutSeconds: 120},
+		AI:             AI{Provider: "none", TimeoutSeconds: 120, BatchMinutes: 15},
 		ClaudeCode: Agent{
 			Bin:  "claude",
 			Args: []string{"-p", "--output-format", "json"},
 		},
-		GitHubCopilot: Agent{Bin: "copilot"},
+		GitHubCopilot: Agent{
+			Bin:  "copilot",
+			Args: []string{"-p", "Read the task on standard input and reply with the JSON object only.", "--silent"},
+		},
 		Ollama: Ollama{
-			URL:          "http://127.0.0.1:11434",
-			Model:        "llama3.2",
-			BatchMinutes: 30,
+			URL:   "http://127.0.0.1:11434",
+			Model: "llama3.2",
 		},
 		MCP:       MCP{Enabled: true},
 		Launch:    Launch{Command: "code", Args: []string{"{path}"}},
@@ -168,8 +176,8 @@ func (c *Config) Validate() error {
 	if c.AI.TimeoutSeconds < 1 {
 		bad("ai.timeout_seconds must be at least 1")
 	}
-	if c.Ollama.BatchMinutes < 1 {
-		bad("ollama.batch_minutes must be at least 1")
+	if c.AI.BatchMinutes < 1 {
+		bad("ai.batch_minutes must be at least 1")
 	}
 	if c.Update.Channel != "stable" && c.Update.Channel != "beta" {
 		bad("update.channel must be stable or beta (got %q)", c.Update.Channel)
@@ -223,6 +231,7 @@ func Load(path string) (*Config, []string, error) {
 	if err := yaml.Unmarshal(data, cfg); err != nil {
 		return nil, nil, fmt.Errorf("parse config %s: %w", path, domain.New(domain.ErrInvalid, err.Error()))
 	}
+	migrateBatchMinutes(cfg, raw)
 	if err := cfg.Validate(); err != nil {
 		return nil, nil, fmt.Errorf("config %s: %w", path, err)
 	}
@@ -285,4 +294,20 @@ func (c *Config) YAML() ([]byte, error) {
 		return nil, err
 	}
 	return buf.Bytes(), nil
+}
+
+// migrateBatchMinutes moves the old ollama.batch_minutes into ai.batch_minutes
+// unless the file also sets the new key.
+func migrateBatchMinutes(c *Config, raw map[string]any) {
+	old := c.Ollama.BatchMinutes
+	c.Ollama.BatchMinutes = 0
+	if old < 1 {
+		return
+	}
+	if ai, ok := raw["ai"].(map[string]any); ok {
+		if _, set := ai["batch_minutes"]; set {
+			return
+		}
+	}
+	c.AI.BatchMinutes = old
 }

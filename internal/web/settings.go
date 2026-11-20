@@ -1,6 +1,7 @@
 package web
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -70,6 +71,8 @@ func specs() []section {
 		{Title: "AI", Fields: []field{
 			{Key: "ai.provider", Label: "Provider", Type: "select", Options: config.Providers},
 			{Key: "ai.timeout_seconds", Label: "Timeout (seconds)", Type: "number"},
+			{Key: "ai.batch_minutes", Label: "Idea sorting interval (minutes)", Type: "number"},
+			{Key: "ai.plan_start_day", Label: "Add an AI plan to Start Day", Type: "bool", Help: "Waits up to 5 seconds for the provider."},
 		}},
 		agent("claude_code", "Claude Code"),
 		agent("github_copilot", "GitHub Copilot"),
@@ -77,7 +80,6 @@ func specs() []section {
 			{Key: "ollama.enabled", Label: "Enabled", Type: "bool"},
 			{Key: "ollama.url", Label: "URL", Type: "text"},
 			{Key: "ollama.model", Label: "Model", Type: "text"},
-			{Key: "ollama.batch_minutes", Label: "Batch interval (minutes)", Type: "number"},
 		}},
 		{Title: "MCP", Fields: []field{
 			{Key: "mcp.enabled", Label: "Enabled", Type: "bool"},
@@ -130,6 +132,17 @@ func mountSettings(ui *UI) {
 			return "", err
 		}
 		return "Settings saved. Restart stkr serve to apply them.", nil
+	})
+	ui.Post("POST /ui/settings/ai-test", func(r *http.Request, _ string) (string, error) {
+		st, err := ui.Svc.AIStatus(r.Context())
+		if err != nil {
+			return "", err
+		}
+		res, err := ui.Svc.AITest(r.Context())
+		if err != nil {
+			return "", err
+		}
+		return fmt.Sprintf("Provider %s works (version %s, answered in %d ms).", res.Provider, versionOrUnknown(st.Version), res.Millis), nil
 	})
 	ui.Post("POST /ui/settings/ctx", func(r *http.Request, _ string) (string, error) {
 		_, err := ui.Svc.AddContext(r.Context(), domain.Context{
@@ -190,4 +203,11 @@ func (u *UI) settings(w http.ResponseWriter, r *http.Request) {
 		Kinds:    domain.ContextKinds,
 		Sections: buildSections(cfg, config.IsSecret),
 	})
+}
+
+func versionOrUnknown(v string) string {
+	if v == "" {
+		return "unknown"
+	}
+	return v
 }

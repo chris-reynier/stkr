@@ -66,6 +66,7 @@ func (s *Service) StartDay(ctx context.Context, opts StartDayOptions) (DayResult
 		return DayResult{}, err
 	}
 	digest := daily.BuildDigest(in)
+	digest, planWarn := s.withAIPlan(ctx, today.Format(dateLayout), digest)
 	prompt, err := daily.Render(s.promptsDir, daily.StartDayTemplate, daily.StartDayData{
 		Date: today.Format(dateLayout), Weekday: today.Weekday().String(), Digest: digest,
 	})
@@ -73,6 +74,9 @@ func (s *Service) StartDay(ctx context.Context, opts StartDayOptions) (DayResult
 		return DayResult{}, err
 	}
 	res := DayResult{OK: true, Chars: len([]rune(prompt)), Prompt: prompt}
+	if planWarn != "" {
+		res.Warnings = append(res.Warnings, planWarn)
+	}
 	if s.cfg.OneDriveDir != "" {
 		body := "# Daily digest " + today.Format(dateLayout) + "\n\n" + digest + "\n"
 		if err := s.writeExport(digestFile, []byte(body)); err != nil {

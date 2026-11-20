@@ -32,6 +32,13 @@
 </form>
 </section>
 
+<form method="post" action="/ui/settings/ai-test" id="ai-test" class="card stack">
+  <input type="hidden" name="next" value="/ui/settings">
+  <h3>AI provider</h3>
+  <p class="muted">Sends one fixed harmless sentence to the provider this server started with. After changing the AI settings below, restart stkr serve first.</p>
+  <button>Test provider</button>
+</form>
+
 <form method="post" action="/ui/settings/config" id="config" class="stack">
 <input type="hidden" name="next" value="/ui/settings">
 <p class="muted">Changes are saved to the config file. Restart <code>stkr serve</code> for them to take effect.</p>

@@ -15,6 +15,7 @@ import (
 	"testing/fstest"
 	"time"
 
+	"github.com/chris-reynier/stkr/internal/ai"
 	"github.com/chris-reynier/stkr/internal/clock"
 	"github.com/chris-reynier/stkr/internal/config"
 	"github.com/chris-reynier/stkr/internal/domain"
@@ -562,3 +563,30 @@ func TestAgentsPage(t *testing.T) {
 }
 
 func ptr(i int) *int { return &i }
+
+type okBackend struct{}
+
+func (okBackend) Name() string                          { return "fakeai" }
+func (okBackend) Local() bool                           { return true }
+func (okBackend) Probe(context.Context) (string, error) { return "1.0", nil }
+func (okBackend) Complete(context.Context, string) (string, error) {
+	return `{"title":"T","text":"x","suggested_project":""}`, nil
+}
+
+func TestSettingsTestProvider(t *testing.T) {
+	// No provider: the button reports an error flash.
+	f := newFixture(t)
+	if !strings.Contains(body(t, f.get("/ui/settings"), 200), "Test provider") {
+		t.Fatal("settings page has no Test provider button")
+	}
+	w := f.post("/ui/settings/ai-test", url.Values{"next": {"/ui/settings"}})
+	if w.Code != 303 || len(w.Result().Cookies()) == 0 || !strings.HasPrefix(w.Result().Cookies()[0].Value, "e") {
+		t.Fatalf("no provider: %d %v", w.Code, w.Result().Cookies())
+	}
+	// With a working provider the flash is a success message.
+	f = newFixture(t, func(d *service.Deps) { d.AI = &ai.Guarded{B: okBackend{}, Timeout: time.Second} })
+	w = f.post("/ui/settings/ai-test", url.Values{"next": {"/ui/settings"}})
+	if w.Code != 303 || len(w.Result().Cookies()) == 0 || strings.HasPrefix(w.Result().Cookies()[0].Value, "e") {
+		t.Fatalf("provider ok: %d %v", w.Code, w.Result().Cookies())
+	}
+}
