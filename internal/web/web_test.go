@@ -29,6 +29,7 @@ type fixture struct {
 	svc     *service.Service
 	clk     *clock.Fake
 	cfgPath string
+	dir     string
 }
 
 func utc(s string) time.Time {
@@ -39,7 +40,7 @@ func utc(s string) time.Time {
 	return t
 }
 
-func newFixture(t *testing.T) *fixture {
+func newFixture(t *testing.T, mut ...func(*service.Deps)) *fixture {
 	t.Helper()
 	dir := t.TempDir()
 	clk := clock.NewFake(utc("2026-11-16 09:00"))
@@ -50,8 +51,11 @@ func newFixture(t *testing.T) *fixture {
 		t.Fatal(err)
 	}
 	lg := slog.New(slog.NewTextHandler(io.Discard, nil))
-	svc, err := service.Open(context.Background(), filepath.Join(dir, "stkr.db"), clk, cfg,
-		service.Deps{BackupDir: filepath.Join(dir, "backups"), ConfigPath: cfgPath, Logger: lg})
+	deps := service.Deps{BackupDir: filepath.Join(dir, "backups"), ConfigPath: cfgPath, Logger: lg, AudioDir: filepath.Join(dir, "audio")}
+	for _, m := range mut {
+		m(&deps)
+	}
+	svc, err := service.Open(context.Background(), filepath.Join(dir, "stkr.db"), clk, cfg, deps)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -60,7 +64,7 @@ func newFixture(t *testing.T) *fixture {
 	if _, err := Mount(srv.Mux(), svc, Options{Logger: lg}); err != nil {
 		t.Fatal(err)
 	}
-	return &fixture{h: srv.Handler(), svc: svc, clk: clk, cfgPath: cfgPath}
+	return &fixture{h: srv.Handler(), svc: svc, clk: clk, cfgPath: cfgPath, dir: dir}
 }
 
 func (f *fixture) get(target string) *httptest.ResponseRecorder {
@@ -131,7 +135,7 @@ func TestPages(t *testing.T) {
 	today := body(t, f.get("/ui/today"), 200)
 	mustContain(t, today, "Monday 2026-11-16", "ACME", "kickoff", "id=\"import\"", "id=\"top3\"", "id=\"items\"", "1h00m",
 		"/ui/week", "/ui/settings", "id=\"update-banner\"", "href=\"/static/app.css\"", "/static/htmx.min.js")
-	for _, absent := range []string{">Ideas<", ">Links<"} {
+	for _, absent := range []string{">Notes<", ">Nonexistent<"} {
 		if strings.Contains(today, absent) {
 			t.Errorf("nav shows unregistered page %s", absent)
 		}
@@ -476,15 +480,15 @@ func TestRegisterAddsPageToNav(t *testing.T) {
 	regMu.Unlock()
 	t.Cleanup(func() { regMu.Lock(); registry = saved; regMu.Unlock() })
 
-	fsys := fstest.MapFS{"ideas.html": {Data: []byte(`{{define "content"}}<h1>Ideas page</h1>{{.Data}}{{end}}`)}}
-	Register(Page{ID: "ideas", Title: "Ideas", Path: "/ui/ideas", Order: 40, Templates: fsys, Mount: func(ui *UI) {
-		ui.Get("GET /ui/ideas", func(w http.ResponseWriter, r *http.Request) { ui.Render(w, r, "ideas", "Ideas", "hello") })
+	fsys := fstest.MapFS{"notes.html": {Data: []byte(`{{define "content"}}<h1>Notes page</h1>{{.Data}}{{end}}`)}}
+	Register(Page{ID: "notes", Title: "Notes", Path: "/ui/notes", Order: 45, Templates: fsys, Mount: func(ui *UI) {
+		ui.Get("GET /ui/notes", func(w http.ResponseWriter, r *http.Request) { ui.Render(w, r, "notes", "Notes", "hello") })
 	}})
 	f := newFixture(t)
-	page := body(t, f.get("/ui/ideas"), 200)
-	mustContain(t, page, "Ideas page", "hello", `class="active"`)
+	page := body(t, f.get("/ui/notes"), 200)
+	mustContain(t, page, "Notes page", "hello", `class="active"`)
 	today := body(t, f.get("/ui/today"), 200)
-	if strings.Index(today, ">Week<") > strings.Index(today, ">Ideas<") || strings.Index(today, ">Ideas<") > strings.Index(today, ">Settings<") {
+	if strings.Index(today, ">Week<") > strings.Index(today, ">Notes<") || strings.Index(today, ">Notes<") > strings.Index(today, ">Settings<") {
 		t.Error("nav order wrong")
 	}
 	// A broken page template fails Mount instead of serving broken pages.

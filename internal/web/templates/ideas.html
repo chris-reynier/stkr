@@ -1,0 +1,56 @@
+{{define "content"}}{{with .Data}}
+<h1>Ideas <small>{{.NewCount}} new</small></h1>
+
+{{if eq .Health.FFmpeg "missing"}}<p class="flash error">Voice recording is unavailable: ffmpeg was not found. See the capture guide.</p>{{end}}
+{{if eq .Health.Whisper "missing"}}<p class="flash error">Transcription is unavailable: whisper was not found. Voice notes are kept without text.</p>{{end}}
+{{if eq .Health.PhoneInbox "error"}}<p class="flash error">The phone inbox folder cannot be read.</p>{{end}}
+
+<section class="card">
+  <h2>Capture</h2>
+  <form method="post" action="/ui/ideas/add" class="stack">
+    <input type="hidden" name="next" value="{{.Self}}">
+    <textarea name="text" rows="2" required aria-label="Idea text" placeholder="An idea, or a meeting action or decision"></textarea>
+    <p class="actions">
+      <label>Type <select name="type"><option value="">idea</option><option value="action">meeting action</option><option value="decision">meeting decision</option><option value="note">meeting note</option></select></label>
+      <label><input type="checkbox" name="personal" value="1"> personal</label>
+      <button>Save</button>
+    </p>
+  </form>
+  <form method="post" action="/ui/ideas/record" class="inline">
+    <input type="hidden" name="next" value="{{.Self}}">
+    <button class="secondary">{{if .Health.Recording}}Stop recording{{else}}Record a voice note{{end}}</button>
+  </form>
+</section>
+
+<form method="get" action="/ui/ideas" class="inline">
+  {{$st := .Status}}
+  <label>Status <select name="status"><option value="">any</option>{{range .Statuses}}<option value="{{.}}"{{if eq (printf "%s" .) $st}} selected{{end}}>{{.}}</option>{{end}}</select></label>
+  <label>Tag <select name="tag"><option value="">any</option><option value="pro"{{if eq .Tag "pro"}} selected{{end}}>pro</option><option value="personal"{{if eq .Tag "personal"}} selected{{end}}>personal</option></select></label>
+  <button class="secondary">Filter</button>
+</form>
+
+{{if .Ideas}}
+{{$self := .Self}}{{$projects := .Projects}}{{$statuses := .Statuses}}
+<table><thead><tr><th>When</th><th>Idea</th><th>Triage</th></tr></thead><tbody>
+{{range .Ideas}}{{$cur := .}}
+<tr id="idea-{{.ID}}">
+  <td>{{.TS.Format "2006-01-02 15:04"}}<br><span class="tag">{{.Tag}}</span>{{if .Source}} <span class="tag">{{.Source}}</span>{{end}}</td>
+  <td>
+    {{if .RawText}}{{.RawText}}{{else if .AudioPath}}<em class="muted">{{if eq (printf "%s" .AIState) "skipped"}}Voice note, no transcript.{{else}}Transcribing...{{end}}</em>{{end}}
+    {{if .AudioPath}}<br><audio controls preload="none" src="/ui/ideas/{{.ID}}/audio"></audio>{{end}}
+  </td>
+  <td>
+    <form method="post" action="/ui/ideas/triage" class="inline">
+      <input type="hidden" name="next" value="{{$self}}"><input type="hidden" name="id" value="{{.ID}}">
+      <select name="status" aria-label="Status">{{range $statuses}}<option value="{{.}}"{{if eq (printf "%s" .) (printf "%s" $cur.Status)}} selected{{end}}>{{.}}</option>{{end}}</select>
+      <select name="project" aria-label="Project"><option value="">no project</option>{{range $projects}}<option value="{{.ID}}"{{if eq .ID $cur.SuggestedProject}} selected{{end}}>{{.Label}}</option>{{end}}</select>
+      <select name="tag" aria-label="Tag"><option value="pro"{{if eq $cur.Tag "pro"}} selected{{end}}>pro</option><option value="personal"{{if eq $cur.Tag "personal"}} selected{{end}}>personal</option></select>
+      <input name="title" value="{{.Title}}" placeholder="title" aria-label="Title" maxlength="200">
+      <button>Save</button>
+    </form>
+  </td>
+</tr>
+{{end}}
+</tbody></table>
+{{else}}<p class="empty">No ideas match.</p>{{end}}
+{{end}}{{end}}

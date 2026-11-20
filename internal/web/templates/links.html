@@ -1,0 +1,30 @@
+{{define "content"}}{{with .Data}}
+<h1>Links</h1>
+<section class="card">
+  <form method="post" action="/ui/links/add" class="inline">
+    <input type="hidden" name="next" value="{{.Self}}">
+    <input name="url" type="url" required placeholder="https://..." aria-label="URL" size="40">
+    <input name="tags" placeholder="tags, comma separated" aria-label="Tags">
+    <button>Save link</button>
+  </form>
+</section>
+<form method="get" action="/ui/links" class="inline">
+  <input name="q" value="{{.Query}}" placeholder="search" aria-label="Search"><button class="secondary">Search</button>
+</form>
+{{if .Links}}
+{{$self := .Self}}
+<table><thead><tr><th>Title</th><th>Tags</th><th>Saved</th><th></th></tr></thead><tbody>
+{{range .Links}}
+<tr id="link-{{.ID}}">
+  <td>{{if .Pinned}}<span class="tag ok">pinned</span> {{end}}<a href="{{.URL}}" rel="noopener noreferrer" target="_blank">{{.Title}}</a><br><span class="muted">{{.URL}}</span></td>
+  <td>{{range .Tags}}<span class="tag">{{.}}</span> {{end}}</td>
+  <td>{{.Created.Format "2006-01-02"}}</td>
+  <td class="actions">
+    <form method="post" action="/ui/links/pin" class="inline"><input type="hidden" name="next" value="{{$self}}"><input type="hidden" name="id" value="{{.ID}}"><input type="hidden" name="pinned" value="{{if .Pinned}}0{{else}}1{{end}}"><button class="secondary">{{if .Pinned}}Unpin{{else}}Pin{{end}}</button></form>
+    <form method="post" action="/ui/links/delete" class="inline"><input type="hidden" name="next" value="{{$self}}"><input type="hidden" name="id" value="{{.ID}}"><button class="danger">Delete</button></form>
+  </td>
+</tr>
+{{end}}
+</tbody></table>
+{{else}}<p class="empty">No links{{if .Query}} match{{end}}.</p>{{end}}
+{{end}}{{end}}

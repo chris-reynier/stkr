@@ -64,6 +64,9 @@ func specs() []section {
 			{Key: "whisper.bin", Label: "Whisper program", Type: "text"},
 			{Key: "whisper.model", Label: "Whisper model file", Type: "text"},
 		}},
+		{Title: "Bookmarks", Fields: []field{
+			{Key: "bookmarks.fetch_title", Label: "Fetch page titles", Type: "bool", Help: "Downloads the page (2 s limit) to read its title."},
+		}},
 		{Title: "AI", Fields: []field{
 			{Key: "ai.provider", Label: "Provider", Type: "select", Options: config.Providers},
 			{Key: "ai.timeout_seconds", Label: "Timeout (seconds)", Type: "number"},

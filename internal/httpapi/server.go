@@ -70,6 +70,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /api/week/{week}/tempo.csv", s.handleTempoCSV)
 	s.agentRoutes()
 	s.dailyRoutes()
+	s.captureRoutes()
 	s.mux.HandleFunc("/", func(w http.ResponseWriter, _ *http.Request) {
 		writeJSON(w, http.StatusNotFound, errBody{Error: "not_found", Message: "no such route"})
 	})
