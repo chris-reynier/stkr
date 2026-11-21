@@ -2,7 +2,7 @@
 
 ## What it does
 
-STKR is one program, `stkr`, that stores everything in a local data folder. This version tracks your time by context from the command line. More features arrive in later releases.
+STKR is one program, `stkr`, that stores everything in a local data folder. It tracks your time by context from the command line, a local web page or a Stream Deck, and it also covers capture, the daily loop and coding-agent integration. This page covers the basics; the [user guide](index.md) lists every topic.
 
 ## How to use
 

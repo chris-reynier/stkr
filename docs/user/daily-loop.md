@@ -10,7 +10,7 @@ STKR helps you plan the day and close it with your AI chat, without retyping any
 4. **Close Day** does the same at the end of the day and lets the AI mark items done.
 5. STKR rewrites a log file per project in your OneDrive folder (or any folder you choose), and reminds you if you forget to close the day.
 
-Nothing leaves your computer except what you paste into your own chat. The digest never includes personal or system contexts, and personal ideas are left out.
+Nothing leaves your computer except what you paste into your own chat (and the short plan request, if you turn on `ai.plan_start_day`; see [AI providers](ai-providers.md)). The digest never includes personal or system contexts, and personal ideas are left out.
 
 The whole loop takes under three minutes: press Start Day, paste, copy the answer, press Import.
 

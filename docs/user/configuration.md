@@ -59,8 +59,6 @@ You can also edit the file by hand. Unknown keys are ignored with a warning. Inv
 | `update.interval_hours` | `24` | Hours between update checks. |
 | `allowed_origins` | empty | Extra browser origins allowed to call the local API. |
 
-Many of these keys take effect only in features that arrive in later releases.
-
 ## Troubleshooting
 
 - `stkr: invalid configuration: ...` lists every bad value. Fix it with `config set` or edit `config.yaml`.

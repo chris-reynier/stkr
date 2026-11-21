@@ -2,7 +2,7 @@
 
 ## What it does
 
-`stkr serve` also serves a small web interface in your browser. It shows and edits your time, and exports a timesheet file. It works offline, needs no login (it only listens on your own computer) and sends nothing to the internet. Every page also works with JavaScript turned off.
+`stkr serve` also serves a small web interface in your browser. It shows and edits your time, and exports a timesheet file. It works offline, needs no login (it only listens on your own computer) and loads nothing from the internet. Every page also works with JavaScript turned off.
 
 Pages:
 
