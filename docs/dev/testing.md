@@ -28,7 +28,7 @@ Coverage targets: overall at least 70%; `internal/timeline` and `internal/servic
 
 ## Desktop tests
 
-`internal/desktop` is plain Go except for the `*_windows.go` files (Win32 tray, WebView2 windows), which cannot run headless. Its tests use fakes for the tray, the windows, the registry and the updater, and are held to 70% coverage **excluding `*_windows.go`** (about 91% today). `internal/desktop/edge` is a patched copy of a third-party wrapper (Windows only, no tests of its own beyond `TestEmbedFailureDoesNotEndTheProcess`) and is left out of the coverage numbers and of the linters.
+`internal/desktop` is plain Go except for the `*_windows.go` files (Win32 tray, WebView2 windows), which cannot run headless. Its tests use fakes for the tray, the windows, the registry and the updater, and are held to 70% coverage **excluding `*_windows.go`** (about 91% today). `internal/desktop/edge` is a patched copy of a third-party wrapper (Windows only, no tests of its own beyond `TestWebViewFailureIsReportedNotFatal`) and is left out of the coverage numbers and of the linters.
 
 `stkrw --headless-test` runs the real program without a notification-area icon, windows, hotkey, message boxes or browser. The e2e tests (`internal/e2e/desktop_test.go`, `TestDesktop...`) build `stkrw.exe` and drive it through a temporary `STKR_HOME` and a free port: hosting, `/api/status`, the panel round trip, second launch, `--quit`, attach mode and a database integrity check. They skip on other systems. Do not run the program without the flag in a test: it would put an icon and windows on the desktop.
 

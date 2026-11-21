@@ -93,7 +93,7 @@ The desktop-facing tests run the real `stkrw.exe` in its test mode (`--headless-
 | Attach mode when `stkr serve` already runs | `e2e/TestDesktopHeadlessAttach` (no second server, the serve keeps answering after the quit), `desktop/TestApp*` | M10 (7) |
 | Update install is refused without a pending update, and under plain `serve` | `e2e/TestDesktopHeadlessLifecycle`, `e2e/TestSmokeP14SettingsAndUpdate` | M14 |
 | Every desktop route is behind the Host/Origin guard | `e2e/TestAcceptanceEveryRouteIsGuarded`, `e2e/TestAcceptanceRouteScanSeesEveryRegistration` | |
-| The window cannot end the program when WebView2 fails | `desktop/TestEmbedFailureDoesNotEndTheProcess` | M12 (5) |
+| The window cannot end the program when WebView2 fails | `desktop/TestWebViewFailureIsReportedNotFatal` | M12 (5) |
 | The window cannot navigate to other origins | `desktop/TestNavigationAllowed`, `desktop/TestOriginOf` | M11 (10) |
 | Installer is per-user and the data deletion is opt-in | `e2e/TestAcceptanceInstallerStaysPerUser`; CI job "windows installer" (silent install, upgrade, uninstall) | M13 |
 | No new outbound network calls | `e2e/TestAcceptanceOutboundHTTPOnlyWhereAllowed` | |

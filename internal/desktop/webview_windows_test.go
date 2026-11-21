@@ -3,65 +3,43 @@
 package desktop
 
 import (
-	"os"
-	"path/filepath"
-	"runtime"
+	"strings"
 	"testing"
-	"time"
-	"unsafe"
-
-	"golang.org/x/sys/windows"
 
 	"github.com/chris-reynier/stkr/internal/desktop/edge"
 )
 
-// TestEmbedFailureDoesNotEndTheProcess is the regression test for the
-// upstream go-webview2 behaviour (log.Fatalf when the WebView2 environment
-// cannot be created), which would have killed the tray and the hosted server.
-// The data folder is an existing file, so the environment cannot be created
-// whether or not the WebView2 runtime is installed; Embed must report the
-// failure. The window is never shown.
-func TestEmbedFailureDoesNotEndTheProcess(t *testing.T) {
-	file := filepath.Join(t.TempDir(), "not-a-folder")
-	if err := os.WriteFile(file, []byte("x"), 0o600); err != nil {
-		t.Fatal(err)
+// TestWebViewFailureIsReportedNotFatal is the regression test for the
+// upstream go-webview2 behaviour (log.Fatalf when the WebView2 environment or
+// controller cannot be created), which would have ended the tray and the
+// hosted server. The completion callbacks that WebView2 calls are driven
+// directly with failure results; they must record the failure, release the
+// waiting Embed loop and return normally (a log.Fatalf would end this test
+// binary). No window is created and nothing is shown.
+func TestWebViewFailureIsReportedNotFatal(t *testing.T) {
+	cases := []struct {
+		name string
+		call func(c *edge.Chromium)
+		want string
+	}{
+		// 0x8007xxxx values are positive as 64-bit numbers: the upstream check
+		// (int64(res) < 0) never saw them as failures.
+		{"environment, access denied", func(c *edge.Chromium) { c.EnvironmentCompleted(0x80070005, nil) }, "environment"},
+		{"environment, no environment", func(c *edge.Chromium) { c.EnvironmentCompleted(0, nil) }, "environment"},
+		{"controller, server failed", func(c *edge.Chromium) { c.CreateCoreWebView2ControllerCompleted(0x80080005, nil) }, "controller"},
+		{"controller, no controller", func(c *edge.Chromium) { c.CreateCoreWebView2ControllerCompleted(0, nil) }, "controller"},
 	}
-	type result struct {
-		ok  bool
-		err error
-	}
-	done := make(chan result, 1)
-	go func() {
-		runtime.LockOSThread()
-		defer runtime.UnlockOSThread()
-		if err := windows.CoInitializeEx(0, windows.COINIT_APARTMENTTHREADED); err == nil {
-			defer windows.CoUninitialize()
-		}
-		// A hidden window of a system class: never visible, no class to register.
-		hwnd, _, cerr := procCreateWindowExW.Call(0,
-			uintptr(unsafe.Pointer(u16("STATIC"))), uintptr(unsafe.Pointer(u16("stkr test"))), //nolint:gosec // G103: Win32 string arguments
-			0, 0, 0, 10, 10, 0, 0, 0, 0)
-		if hwnd == 0 {
-			done <- result{err: cerr}
-			return
-		}
-		defer procDestroyWindow.Call(hwnd) //nolint:errcheck // test cleanup
-		c := edge.NewChromium()
-		c.DataPath = file
-		c.EmbedTimeout = 10 * time.Second
-		ok := c.Embed(hwnd)
-		done <- result{ok: ok, err: c.Err()}
-	}()
-	select {
-	case r := <-done:
-		if r.ok {
-			t.Fatal("Embed succeeded with a file as the data folder")
-		}
-		if r.err == nil {
-			t.Fatal("Embed failed without a reason")
-		}
-		t.Logf("Embed failed as expected: %v", r.err)
-	case <-time.After(60 * time.Second):
-		t.Fatal("Embed did not return")
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			c := edge.NewChromium()
+			if c.Err() != nil {
+				t.Fatal("a new wrapper already has an error")
+			}
+			tc.call(c)
+			err := c.Err()
+			if err == nil || !strings.Contains(err.Error(), tc.want) {
+				t.Fatalf("Err() = %v, want a %s failure", err, tc.want)
+			}
+		})
 	}
 }

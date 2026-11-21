@@ -214,7 +214,7 @@ func (e *Chromium) Release() uintptr {
 }
 
 func (e *Chromium) EnvironmentCompleted(res uintptr, env *ICoreWebView2Environment) uintptr {
-	if int32(res) < 0 { // STKR: an HRESULT is 32 bits wide (upstream compared int64, which never caught 0x8007xxxx)
+	if int32(res) < 0 || env == nil { // STKR: an HRESULT is 32 bits wide (upstream compared int64, which never caught 0x8007xxxx)
 		// STKR: upstream ends the process here. Report the failure to Embed instead.
 		e.initErr = fmt.Errorf("creating the WebView2 environment failed with %08x", res)
 		atomic.StoreUintptr(&e.inited, 1)
@@ -232,7 +232,7 @@ func (e *Chromium) EnvironmentCompleted(res uintptr, env *ICoreWebView2Environme
 }
 
 func (e *Chromium) CreateCoreWebView2ControllerCompleted(res uintptr, controller *ICoreWebView2Controller) uintptr {
-	if int32(res) < 0 { // STKR: an HRESULT is 32 bits wide (upstream compared int64, which never caught 0x8007xxxx)
+	if int32(res) < 0 || controller == nil { // STKR: an HRESULT is 32 bits wide (upstream compared int64, which never caught 0x8007xxxx)
 		e.initErr = fmt.Errorf("creating the WebView2 controller failed with %08x", res)
 		atomic.StoreUintptr(&e.inited, 1)
 		return 0
