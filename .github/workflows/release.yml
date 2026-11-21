@@ -9,7 +9,9 @@ permissions:
 
 jobs:
   release:
-    runs-on: ubuntu-latest
+    # Windows because the per-user installer is built with Inno Setup, which
+    # is preinstalled on this runner.
+    runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
         with:
@@ -19,6 +21,8 @@ jobs:
           go-version-file: go.mod
       - name: Test
         run: go test ./...
+      # GoReleaser builds the programs and archives and creates the release as
+      # a draft (see .goreleaser.yaml).
       - uses: goreleaser/goreleaser-action@v6
         with:
           distribution: goreleaser
@@ -26,3 +30,15 @@ jobs:
           args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build the installers
+        shell: pwsh
+        run: ./packaging/windows/build-setups.ps1 -Checksums
+      # checksums.txt is replaced by the version that also lists the setup
+      # files, then the draft is published.
+      - name: Add installers and publish
+        shell: pwsh
+        run: |
+          gh release upload "$env:GITHUB_REF_NAME" (Get-ChildItem dist -Filter '*_setup.exe').FullName dist/checksums.txt --clobber
+          gh release edit "$env:GITHUB_REF_NAME" --draft=false
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -16,6 +16,9 @@ import (
 	"github.com/chris-reynier/stkr/internal/server"
 )
 
+// signalQuit records the quit argument of the last signalInstance call.
+var signalQuit bool
+
 // hooks replaces the platform hooks for one test.
 func hooks(t *testing.T, tray Tray, already bool, signalled *bool) {
 	t.Helper()
@@ -33,7 +36,8 @@ func hooks(t *testing.T, tray Tray, already bool, signalled *bool) {
 		return tray, nil
 	}
 	acquireInstance = func(string) (func(), bool, error) { return func() {}, already, nil }
-	signalInstance = func(string) error {
+	signalInstance = func(_ string, quit bool) error {
+		signalQuit = quit
 		if signalled != nil {
 			*signalled = true
 		}
@@ -216,5 +220,23 @@ func TestMainPassesDesktopSettings(t *testing.T) {
 	defer tray.mu.Unlock()
 	if len(tray.hotkeys) != 0 {
 		t.Errorf("hotkeys registered although it is empty: %v", tray.hotkeys)
+	}
+}
+
+func TestMainQuitSignalsWithoutStarting(t *testing.T) {
+	var signalled bool
+	hooks(t, nil, false, &signalled)
+	signalQuit = false
+	home := filepath.Join(t.TempDir(), "home")
+	if code := Main([]string{"-home", home, "--quit"}, &bytes.Buffer{}, "0.2.0"); code != 0 || !signalled || !signalQuit {
+		t.Fatalf("code %d signalled %v quit %v", code, signalled, signalQuit)
+	}
+}
+
+func TestMainAcceptsAutostartMarker(t *testing.T) {
+	hooks(t, nil, true, nil)
+	home := filepath.Join(t.TempDir(), "home")
+	if code := Main([]string{"-home", home, "--autostart"}, &bytes.Buffer{}, "0.2.0"); code != 0 {
+		t.Fatalf("code %d", code)
 	}
 }

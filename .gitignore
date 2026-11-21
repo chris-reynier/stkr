@@ -38,3 +38,8 @@ dist/
 *.db
 /stkr
 /stkr.exe
+
+# Generated Windows resources and icon (tools/genicon, go-winres)
+*.syso
+packaging/windows/*.ico
+packaging/windows/build.generated.iss

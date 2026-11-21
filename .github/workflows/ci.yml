@@ -88,3 +88,49 @@ jobs:
           size=$(stat -c %s "$f")
           echo "binary size: $size bytes"
           test "$size" -lt 31457280
+
+  windows-installer:
+    name: windows installer
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: Snapshot release (archives and both programs)
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          distribution: goreleaser
+          version: "~> v2"
+          args: release --snapshot --clean --skip=publish
+      - name: Windows zip holds stkr.exe and stkrw.exe
+        shell: pwsh
+        run: |
+          Add-Type -AssemblyName System.IO.Compression.FileSystem
+          $zip = Get-ChildItem dist -Filter 'stkr_*_windows_amd64.zip' | Select-Object -First 1
+          $names = [System.IO.Compression.ZipFile]::OpenRead($zip.FullName).Entries.Name
+          if (($names -notcontains 'stkr.exe') -or ($names -notcontains 'stkrw.exe')) { throw "zip lacks a program: $names" }
+      - name: Compile the installers
+        shell: pwsh
+        run: ./packaging/windows/build-setups.ps1 -Checksums
+      - name: Setup files are in checksums.txt
+        shell: pwsh
+        run: |
+          $sums = Get-Content dist/checksums.txt
+          foreach ($f in Get-ChildItem dist -Filter '*_setup.exe') {
+            if (-not ($sums | Select-String -SimpleMatch $f.Name)) { throw "$($f.Name) is not in checksums.txt" }
+          }
+      - name: Silent install, upgrade and uninstall
+        shell: pwsh
+        run: |
+          $setup = Get-ChildItem dist -Filter 'stkr_*_windows_amd64_setup.exe' | Select-Object -First 1
+          ./packaging/windows/smoke-test.ps1 -Setup $setup.FullName
+      - name: Upload setup log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: setup-log
+          path: ${{ runner.temp }}/stkr-setup.log
+          if-no-files-found: ignore

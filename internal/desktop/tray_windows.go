@@ -390,7 +390,7 @@ func (t *winTray) applyIcon(is IconState, tip string) {
 	}
 }
 
-func (t *winTray) wndProc(hwnd windows.HWND, msg uint32, _, lp uintptr) (uintptr, bool) {
+func (t *winTray) wndProc(hwnd windows.HWND, msg uint32, wp, lp uintptr) (uintptr, bool) {
 	switch {
 	case msg == wmTrayIcon:
 		switch uint32(lp & 0xFFFF) {
@@ -404,6 +404,10 @@ func (t *winTray) wndProc(hwnd windows.HWND, msg uint32, _, lp uintptr) (uintptr
 		t.runQueue()
 		return 0, true
 	case msg == wmTrayShow:
+		if wp == 1 { // stkrw --quit
+			t.h.Select(ActQuit)
+			return 0, true
+		}
 		t.h.Show()
 		return 0, true
 	case msg == wmHotKey:
@@ -541,14 +545,18 @@ func platformAcquireInstance(name string) (func(), bool, error) {
 	return func() { _ = windows.CloseHandle(h) }, false, nil
 }
 
-func platformSignalInstance(name string) error {
+func platformSignalInstance(name string, quit bool) error {
 	hwnd, _, err := procFindWindowW.Call(uintptr(unsafe.Pointer(u16(trayClassName))), uintptr(unsafe.Pointer(u16(name)))) //nolint:gosec // G103: Win32 string arguments
 	if hwnd == 0 {
 		return fmt.Errorf("find running instance: %w", err)
 	}
+	var wp uintptr
+	if quit {
+		wp = 1
+	}
 	// Let the running instance bring the browser or panel to the front.
 	_, _, _ = procAllowSetForegroundWindow.Call(uintptr(^uint32(0)))
-	_, _, _ = procPostMessageW.Call(hwnd, wmTrayShow, 0, 0)
+	_, _, _ = procPostMessageW.Call(hwnd, wmTrayShow, wp, 0)
 	return nil
 }
 

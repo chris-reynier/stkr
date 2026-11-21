@@ -10,7 +10,7 @@ Run the failing command again with `--debug` to see log output on stderr. The lo
 
 | Problem | What to do |
 |---|---|
-| `stkr: command not found` | Put the binary on your PATH or run it with its full path. |
+| `stkr: command not found` | Open a new terminal after installing. If you used the Windows setup, `stkr` is in `%LOCALAPPDATA%\Programs\STKR` (see [Install](install.md#troubleshooting)). Otherwise put the binary on your PATH or run it with its full path. |
 | Exit code 2 | The command line or a value was invalid. Read the message on stderr. |
 | `invalid configuration` | Fix the listed keys with `stkr config set`, or delete `config.yaml` to reset. |
 | `warning: unknown config key` | Check the spelling against [Configuration](configuration.md). |
