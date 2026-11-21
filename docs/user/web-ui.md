@@ -13,6 +13,7 @@ Pages:
 - **Ideas** lists captured ideas with filters and inline triage, and has a capture form and a voice record button. See [Capture](capture.md).
 - **Links** saves, searches, pins and deletes bookmarks. See [Bookmarks](bookmarks.md).
 - **Settings** edits contexts (label, kind, Tempo ticket, notebook URL, working folder, park or activate) and the configuration (time, paths, AI provider, Claude Code, GitHub Copilot, Ollama, MCP). It also has a **Test provider** button for the AI provider (see [AI providers](ai-providers.md)).
+- **Panel** (`/ui/panel`) is a compact page for the Windows desktop app: what is running with a Stop button, your contexts as switch buttons, an idea box (Enter saves), Start day, Close day, Import from clipboard, the agents waiting and the close and update reminders. It is not in the navigation. It also works in a normal browser tab at `http://127.0.0.1:7878/ui/panel`; the pin and window buttons only appear inside the desktop app. See [Desktop app](desktop.md).
 
 ## How to use
 

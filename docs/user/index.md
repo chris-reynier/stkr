@@ -8,7 +8,7 @@ STKR is a local-first task stack manager. These pages explain how to use it. If 
 - [Time tracking](time-tracking.md): switch contexts, read your day and week, confirm idle blocks.
 - [Contexts](contexts.md): create, change, park and activate contexts.
 - [Server](server.md): run `stkr serve`, autostart on Windows, port.
-- [Desktop app](desktop.md): the Windows notification-area icon (`stkrw.exe`): status at a glance, menu with the daily actions.
+- [Desktop app](desktop.md): the Windows notification-area icon (`stkrw.exe`): status at a glance, an always-on-top panel with the daily actions and a hotkey, and a full app window.
 - [Web UI](web-ui.md): Today, Week, Agents, Ideas, Links and Settings pages, edit your timeline, export Tempo CSV.
 - [Stream Deck](stream-deck.md): switch contexts from keys and show the current context.
 - [Daily loop](daily-loop.md): Start Day, Close Day, import the AI answer, project log files, reminders.

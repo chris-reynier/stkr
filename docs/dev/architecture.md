@@ -13,6 +13,8 @@ cmd/stkr -> internal/cli --+
 cmd/stkrw -> internal/desktop --HTTP--> 127.0.0.1:<port> (attach) or internal/server.Start (host)
 internal/server    listener, API + web routes, background jobs; used by `stkr serve` and stkrw
 internal/desktop   tray app: attach/host, status polling, menu model, notifications; Win32 in tray_windows.go
+                   panel + app windows (WebView2 via go-webview2, one thread each): webview_windows.go; window state, hotkey and page messages are pure Go
+internal/hotkey    "Ctrl+Alt+Space" parser shared by config validation and the tray
 internal/app       wiring: config -> dependencies -> service; background workers
 internal/config    YAML load/save, defaults, validation, redaction
 internal/clock     Clock interface, Real, Fake
@@ -38,7 +40,7 @@ Rules:
 ## Processes
 
 - `stkr serve` runs the HTTP API and UI plus background workers (`internal/server.Start`).
-- `stkrw` (Windows) probes `/healthz` on the configured port: if `stkr serve` answers it attaches, otherwise it runs `internal/server.Start` itself. Every tray action is an HTTP call to that server. One instance per data folder (named mutex).
+- `stkrw` (Windows) probes `/healthz` on the configured port: if `stkr serve` answers it attaches, otherwise it runs `internal/server.Start` itself. Every tray action is an HTTP call to that server. One instance per data folder (named mutex). The panel and the app window show the same server-rendered pages in WebView2 (the panel is `/ui/panel`); each window runs on its own locked OS thread with its own message loop, and a page can only send the few messages listed in `docs/contracts/desktop-windows.md`.
 - `stkr mcp` runs the MCP server on stdio and opens the database directly.
 - Other commands open the database directly and exit. Commands that need state held by `serve` call `http://127.0.0.1:<port>` and exit with code 2 and a hint if it is not running.
 - SQLite uses WAL mode, a 5 second busy timeout and foreign keys.
