@@ -682,13 +682,16 @@ func TestAcceptanceProviderSwitchWithoutRebuild(t *testing.T) {
 
 var routeRe = regexp.MustCompile(`"(GET|POST|PUT|PATCH|DELETE|HEAD) (/[^"\s]*)"`)
 
+// routeDirs are the packages that register routes.
+var routeDirs = []string{"../httpapi", "../web", "../server"}
+
 // registeredRoutes reads every route pattern registered in the HTTP and web
 // packages from the source (the mux does not expose its table).
 func registeredRoutes(t *testing.T) [][2]string {
 	t.Helper()
 	var routes [][2]string
 	seen := map[string]bool{}
-	for _, dir := range []string{"../httpapi", "../web"} {
+	for _, dir := range routeDirs {
 		files, _ := filepath.Glob(filepath.Join(dir, "*.go"))
 		for _, f := range files {
 			if strings.HasSuffix(f, "_test.go") {
@@ -935,4 +938,153 @@ func TestAcceptancePerfBudgets(t *testing.T) {
 	check("POST /api/switch", "POST", "/api/switch/%s", 100*time.Millisecond)
 	check("GET /img/now.png", "GET", "/img/now.png", 50*time.Millisecond)
 	check("GET /api/now", "GET", "/api/now", 100*time.Millisecond)
+}
+
+// registrationRe finds route registrations (mux.HandleFunc, ui.Get, ui.Post)
+// and captures the first argument.
+var registrationRe = regexp.MustCompile(`(?:\.HandleFunc|\bui\.Get|\bui\.Post)\(\s*([^,\n]+),`)
+
+// TestAcceptanceRouteScanSeesEveryRegistration keeps the route-table test
+// honest: every registration must use a literal "METHOD /path" so the scan
+// finds it, and the routes added for the desktop app are all in the table.
+// A route registered through a variable would escape the guard test above,
+// so it fails here.
+func TestAcceptanceRouteScanSeesEveryRegistration(t *testing.T) {
+	for _, dir := range routeDirs {
+		files, _ := filepath.Glob(filepath.Join(dir, "*.go"))
+		for _, f := range files {
+			if strings.HasSuffix(f, "_test.go") {
+				continue
+			}
+			b, err := os.ReadFile(f)
+			if err != nil {
+				t.Fatal(err)
+			}
+			for _, m := range registrationRe.FindAllStringSubmatch(string(b), -1) {
+				arg := strings.TrimSpace(m[1])
+				switch {
+				case routeRe.MatchString(arg):
+				case arg == `"/"` && strings.HasSuffix(f, "server.go"): // JSON 404 catch-all
+				case arg == "pattern" && strings.HasSuffix(f, "web.go"): // the Get/Post helpers themselves
+				default:
+					t.Errorf("%s registers a route the guard test cannot see: %s", f, arg)
+				}
+			}
+		}
+	}
+	have := map[string]bool{}
+	for _, r := range registeredRoutes(t) {
+		have[r[0]+" "+r[1]] = true
+	}
+	for _, want := range []string{
+		"GET /api/status",
+		"GET /ui/panel", "GET /ui/panel/live", "POST /ui/import/clipboard",
+		"POST /ui/update/check", "POST /ui/update/apply",
+		"POST /ui/settings/config", "POST /ui/settings/backup", "POST /ui/settings/open-data",
+	} {
+		if !have[want] {
+			t.Errorf("route %q is not in the scanned table", want)
+		}
+	}
+	for r := range have {
+		// The desktop app is signalled by a window message, not a route.
+		if strings.Contains(r, "/desktop") || strings.Contains(r, "/show") || strings.Contains(r, "/quit") {
+			t.Errorf("unexpected desktop control route %q", r)
+		}
+	}
+}
+
+// ---- Desktop security policy (static checks of what cannot run here) ----
+
+// TestAcceptanceOutboundHTTPOnlyWhereAllowed: the only code that makes HTTP
+// requests is the AI provider (Ollama), the bookmark title fetch, the updater
+// and two loopback clients (stkr update's server probe and the desktop app's
+// client of 127.0.0.1). A new file using an HTTP client fails here, so a new
+// outbound call cannot slip in unnoticed (conventions section 6).
+func TestAcceptanceOutboundHTTPOnlyWhereAllowed(t *testing.T) {
+	allowed := map[string]string{
+		"internal/ai/ollama.go":      "configured AI provider",
+		"internal/capture/title.go":  "bookmark title fetch",
+		"internal/update/update.go":  "update check and download",
+		"internal/cli/update.go":     "loopback probe of the local server",
+		"internal/desktop/client.go": "loopback client of the local server",
+	}
+	use := regexp.MustCompile(`http\.(Client\b|Get\(|Post\(|Head\(|DefaultClient|NewRequest|Transport\b)`)
+	root := filepath.Join("..", "..")
+	for _, top := range []string{"internal", "cmd", "tools"} {
+		err := filepath.WalkDir(filepath.Join(root, top), func(p string, d os.DirEntry, err error) error {
+			if err != nil || d.IsDir() || !strings.HasSuffix(p, ".go") || strings.HasSuffix(p, "_test.go") {
+				return err
+			}
+			rel, _ := filepath.Rel(root, p)
+			rel = filepath.ToSlash(rel)
+			if strings.HasPrefix(rel, "internal/e2e/") || strings.HasPrefix(rel, "internal/testutil/") {
+				return nil
+			}
+			b, err := os.ReadFile(p)
+			if err != nil {
+				return err
+			}
+			if use.Match(b) {
+				if _, ok := allowed[rel]; !ok {
+					t.Errorf("%s makes HTTP requests but is not on the allowed list", rel)
+				}
+			}
+			return nil
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	// The desktop client only ever talks to 127.0.0.1.
+	b, err := os.ReadFile(filepath.Join(root, "internal", "desktop", "client.go"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(b), "127.0.0.1") {
+		t.Error("desktop client no longer names the loopback address")
+	}
+}
+
+// TestAcceptanceInstallerStaysPerUser reads the Inno Setup script: no
+// administrator rights, no machine-wide registry or folders, only HKCU for the
+// PATH entry and the sign-in entry, and the data deletion on uninstall is a
+// double confirmation that defaults to No and never happens silently.
+func TestAcceptanceInstallerStaysPerUser(t *testing.T) {
+	b, err := os.ReadFile(filepath.Join("..", "..", "packaging", "windows", "stkr.iss"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	iss := string(b)
+	for _, want := range []string{"PrivilegesRequired=lowest", "UninstallSilent", "HKCU"} {
+		if !strings.Contains(iss, want) {
+			t.Errorf("stkr.iss does not contain %q", want)
+		}
+	}
+	for _, bad := range []string{"HKLM", "HKEY_LOCAL_MACHINE", "HKA", "{commonappdata}", "{commonpf", "{pf}", "{pf32}", "{pf64}", "{autopf", "{sys}", "{win}", "PrivilegesRequired=admin", "PrivilegesRequiredOverridesAllowed=commandline dialog"} {
+		if strings.Contains(iss, bad) {
+			t.Errorf("stkr.iss contains %q (machine-wide or elevated)", bad)
+		}
+	}
+	// Every registry call names HKCU.
+	for _, m := range regexp.MustCompile(`(?m)^.*\b(Reg\w+)\((\w+),`).FindAllStringSubmatch(iss, -1) {
+		if m[2] != "HKCU" {
+			t.Errorf("registry call on %s: %s", m[2], strings.TrimSpace(m[0]))
+		}
+	}
+	for _, m := range regexp.MustCompile(`(?m)^Root:\s*(\w+);`).FindAllStringSubmatch(iss, -1) {
+		if m[1] != "HKCU" {
+			t.Errorf("[Registry] root %s", m[1])
+		}
+	}
+	// Data deletion: two confirmations, both default to No, and only when not silent.
+	if n := strings.Count(iss, "MB_YESNO or MB_DEFBUTTON2"); n < 2 {
+		t.Errorf("the data deletion has %d No-by-default confirmations, want 2", n)
+	}
+	if !strings.Contains(iss, "if UninstallSilent then") {
+		t.Error("a silent uninstall may delete data")
+	}
+	if !strings.Contains(iss, "DeleteData and SafeToDelete(DataDir)") {
+		t.Error("the data folder is deleted without the safety check")
+	}
 }
