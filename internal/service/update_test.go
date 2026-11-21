@@ -14,6 +14,7 @@ import (
 	"github.com/chris-reynier/stkr/internal/clock"
 	"github.com/chris-reynier/stkr/internal/config"
 	"github.com/chris-reynier/stkr/internal/store"
+	"github.com/chris-reynier/stkr/internal/testutil"
 	upd "github.com/chris-reynier/stkr/internal/update"
 )
 
@@ -38,7 +39,7 @@ func updateFixture(t *testing.T, check bool, version string, h http.Handler) (*S
 	cfg := config.Default()
 	cfg.Update.Check = check
 	svc, err := New(st, clock.NewFake(at("2026-11-16 09:00")), cfg, Deps{
-		Version: version,
+		Version: version, Autostart: &testutil.FakeAutostart{},
 		Updater: &upd.Updater{Repo: "o/r", APIBase: srv.URL, HTTP: srv.Client()},
 	})
 	if err != nil {
@@ -83,7 +84,7 @@ func TestUpdateTickStoresAndBanner(t *testing.T) {
 	if !ok || !info.Available || info.Latest != "v0.2.0" || info.Checked.IsZero() {
 		t.Fatalf("info = %+v ok=%v", info, ok)
 	}
-	if b := svc.UpdateBanner(ctx); b != "STKR v0.2.0 is available — run `stkr update`" {
+	if b := svc.UpdateBanner(ctx); b != "STKR v0.2.0 is available" {
 		t.Errorf("banner = %q", b)
 	}
 	if ci, ok := CachedUpdateInfo(ctx, dbPath, "v0.1.0"); !ok || !ci.Available {

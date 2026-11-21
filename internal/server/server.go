@@ -33,6 +33,13 @@ type Options struct {
 	Logger *slog.Logger
 	// HostedBy is HostedByServe (default) or HostedByDesktop.
 	HostedBy string
+	// OnUpdateRequest, OnSettingsSaved and OnOpenDataFolder are the desktop
+	// app's callbacks behind the Install update button, live settings and
+	// "Open data folder" (see web.Hooks). They only apply when HostedBy is
+	// HostedByDesktop; `stkr serve` leaves them nil.
+	OnUpdateRequest  func(ctx context.Context) error
+	OnSettingsSaved  func()
+	OnOpenDataFolder func() error
 }
 
 // ListenError is returned by Start when the port cannot be opened.
@@ -76,7 +83,10 @@ func Start(ctx context.Context, svc *service.Service, opts Options) (*Handle, er
 	port := ln.Addr().(*net.TCPAddr).Port
 
 	srv := httpapi.New(svc, httpapi.Options{Port: port, AllowedOrigins: svc.Config().AllowedOrigins, Logger: lg, HostedBy: hostedBy})
-	if _, err := web.Mount(srv.Mux(), svc, web.Options{Logger: lg}); err != nil {
+	webOpts := web.Options{Logger: lg, HostedBy: hostedBy, Hooks: web.Hooks{
+		RequestUpdate: opts.OnUpdateRequest, SettingsSaved: opts.OnSettingsSaved, OpenDataFolder: opts.OnOpenDataFolder,
+	}}
+	if _, err := web.Mount(srv.Mux(), svc, webOpts); err != nil {
 		_ = ln.Close()
 		return nil, err
 	}

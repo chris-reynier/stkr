@@ -21,6 +21,7 @@ import (
 	"github.com/chris-reynier/stkr/internal/domain"
 	"github.com/chris-reynier/stkr/internal/httpapi"
 	"github.com/chris-reynier/stkr/internal/service"
+	"github.com/chris-reynier/stkr/internal/testutil"
 )
 
 const port = 7878
@@ -43,6 +44,12 @@ func utc(s string) time.Time {
 
 func newFixture(t *testing.T, mut ...func(*service.Deps)) *fixture {
 	t.Helper()
+	return newFixtureWith(t, Options{}, mut...)
+}
+
+// newFixtureWith is newFixture with web options (for example a desktop host).
+func newFixtureWith(t *testing.T, opts Options, mut ...func(*service.Deps)) *fixture {
+	t.Helper()
 	dir := t.TempDir()
 	clk := clock.NewFake(utc("2026-11-16 09:00"))
 	cfg := config.Default()
@@ -52,7 +59,7 @@ func newFixture(t *testing.T, mut ...func(*service.Deps)) *fixture {
 		t.Fatal(err)
 	}
 	lg := slog.New(slog.NewTextHandler(io.Discard, nil))
-	deps := service.Deps{BackupDir: filepath.Join(dir, "backups"), ConfigPath: cfgPath, Logger: lg, AudioDir: filepath.Join(dir, "audio")}
+	deps := service.Deps{BackupDir: filepath.Join(dir, "backups"), ConfigPath: cfgPath, Logger: lg, AudioDir: filepath.Join(dir, "audio"), Autostart: &testutil.FakeAutostart{}}
 	for _, m := range mut {
 		m(&deps)
 	}
@@ -62,7 +69,8 @@ func newFixture(t *testing.T, mut ...func(*service.Deps)) *fixture {
 	}
 	t.Cleanup(func() { _ = svc.Close() })
 	srv := httpapi.New(svc, httpapi.Options{Port: port, Logger: lg})
-	if _, err := Mount(srv.Mux(), svc, Options{Logger: lg}); err != nil {
+	opts.Logger = lg
+	if _, err := Mount(srv.Mux(), svc, opts); err != nil {
 		t.Fatal(err)
 	}
 	return &fixture{h: srv.Handler(), svc: svc, clk: clk, cfgPath: cfgPath, dir: dir}

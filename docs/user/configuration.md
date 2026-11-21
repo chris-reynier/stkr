@@ -37,6 +37,7 @@ You can also edit the file by hand. Unknown keys are ignored with a warning. Inv
 | `desktop.panel_on_top` | `true` | The Windows panel stays above other windows (the pin). See [Desktop app](desktop.md). |
 | `desktop.hotkey` | `Ctrl+Alt+Space` | Global key that shows or hides the panel, for example `Ctrl+Shift+K`. Empty turns it off. At least one of Ctrl, Alt, Shift or Win is required. |
 | `desktop.open_panel_on_start` | `false` | Show the panel when the Windows app starts. |
+| `desktop.autostart` | `false` | Remembers the "Start STKR when I sign in" choice made in Settings. The sign-in entry itself is the Windows Run value `STKR`, written by Settings and the installer; the Settings box shows its real state. `stkr config set` changes only this note, not Windows. See [Desktop app](desktop.md). |
 | `ffmpeg` | `ffmpeg` | Path or name of the ffmpeg program. |
 | `whisper.bin` | `whisper-cli` | Speech-to-text program. |
 | `whisper.model` | `""` | Path to the speech model file. |

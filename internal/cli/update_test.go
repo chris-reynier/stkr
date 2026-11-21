@@ -5,6 +5,7 @@ import (
 	"archive/zip"
 	"bytes"
 	"compress/gzip"
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -207,5 +208,64 @@ func TestVersionShowsCachedUpdateOnly(t *testing.T) {
 	run(root, o, []string{"--home", home, "version"}, &so, &se)
 	if strings.Contains(so.String(), "update available") {
 		t.Fatalf("stale: %q", so.String())
+	}
+}
+
+func TestUpdateSetupInstall(t *testing.T) {
+	setup := []byte("SETUP")
+	zipName, setupName := "stkr_0.2.0_windows_amd64.zip", "stkr_0.2.0_windows_amd64_setup.exe"
+	var zbuf bytes.Buffer
+	zw := zip.NewWriter(&zbuf)
+	w, _ := zw.Create("stkr.exe")
+	_, _ = w.Write([]byte("NEW"))
+	_ = zw.Close()
+	sum := func(b []byte) string { s := sha256.Sum256(b); return hex.EncodeToString(s[:]) }
+	var srv *httptest.Server
+	srv = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case strings.HasPrefix(r.URL.Path, "/repos/o/r/releases"):
+			_ = json.NewEncoder(w).Encode([]map[string]any{{"tag_name": "v0.2.0", "html_url": "https://example.test/v0.2.0",
+				"assets": []map[string]string{
+					{"name": zipName, "browser_download_url": srv.URL + "/a/" + zipName},
+					{"name": setupName, "browser_download_url": srv.URL + "/a/" + setupName},
+					{"name": "checksums.txt", "browser_download_url": srv.URL + "/a/checksums.txt"},
+				}}})
+		case r.URL.Path == "/a/"+setupName:
+			_, _ = w.Write(setup)
+		case r.URL.Path == "/a/checksums.txt":
+			fmt.Fprintf(w, "%s  %s\n%s  %s\n", sum(zbuf.Bytes()), zipName, sum(setup), setupName)
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	t.Cleanup(srv.Close)
+
+	dir := t.TempDir()
+	exe := filepath.Join(dir, "stkr.exe")
+	_ = os.WriteFile(exe, []byte("OLD"), 0o755)
+	_ = os.WriteFile(filepath.Join(dir, update.InstallFile), []byte(`{"method":"setup","version":"0.1.0"}`), 0o644)
+	var started []string
+	u := &update.Updater{Repo: "o/r", APIBase: srv.URL, HTTP: srv.Client(), GOOS: "windows", GOARCH: "amd64", TempDir: t.TempDir(),
+		Start: func(_ context.Context, path string, args []string) error {
+			started = append([]string{filepath.Base(path)}, args...)
+			return nil
+		}}
+
+	out, _, code := execUpdate(t, u, "v0.1.0", exe, "update", "--yes")
+	if code != 0 || !strings.Contains(out, "installed by the STKR setup") || !strings.Contains(out, "started the setup") {
+		t.Fatalf("code %d out %q", code, out)
+	}
+	if got := strings.Join(started, " "); got != setupName+" /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /CURRENTUSER" {
+		t.Errorf("setup started as %q (the CLI must not ask for a relaunch)", got)
+	}
+	if b, _ := os.ReadFile(exe); string(b) != "OLD" {
+		t.Error("the CLI replaced the program itself instead of running the setup")
+	}
+
+	started = nil
+	out, _, code = execUpdate(t, u, "v0.1.0", exe, "update", "--yes", "--json")
+	var res map[string]any
+	if code != 0 || json.Unmarshal([]byte(out), &res) != nil || res["method"] != "setup" || res["applied"] != true {
+		t.Fatalf("json: code %d %q", code, out)
 	}
 }

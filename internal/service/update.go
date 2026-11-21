@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/chris-reynier/stkr/internal/buildinfo"
+	"github.com/chris-reynier/stkr/internal/domain"
 	"github.com/chris-reynier/stkr/internal/store"
 	upd "github.com/chris-reynier/stkr/internal/update"
 )
@@ -93,6 +94,21 @@ func (s *Service) UpdateInfo(ctx context.Context) (UpdateInfo, bool) {
 	return decodeUpdate(v, s.currentVersion())
 }
 
+// UpdatePending returns the cached update when it is newer than the running
+// version. ok is false when nothing is cached, nothing newer is known or this
+// is a development build. It does not depend on update.check: a check the user
+// started with "Check now" counts.
+func (s *Service) UpdatePending(ctx context.Context) (UpdateInfo, bool) {
+	if upd.IsDev(s.currentVersion()) {
+		return UpdateInfo{}, false
+	}
+	info, ok := s.UpdateInfo(ctx)
+	if !ok || !info.Available {
+		return UpdateInfo{}, false
+	}
+	return info, true
+}
+
 // UpdateBanner returns the banner text, or "" when no update is known,
 // update.check is off, or this is a development build.
 func (s *Service) UpdateBanner(ctx context.Context) string {
@@ -103,7 +119,7 @@ func (s *Service) UpdateBanner(ctx context.Context) string {
 	if !ok || !info.Available {
 		return ""
 	}
-	return "STKR " + info.Latest + " is available — run `stkr update`"
+	return "STKR " + info.Latest + " is available"
 }
 
 // CachedUpdateInfo reads the cached result straight from the database file
@@ -136,3 +152,24 @@ func decodeUpdate(v, current string) (UpdateInfo, bool) {
 
 // CurrentVersion returns the running version.
 func (s *Service) CurrentVersion() string { return s.currentVersion() }
+
+// UpdateStage downloads the latest release of the configured channel,
+// verifies it and prepares the installation next to exe, without changing any
+// installed program (see update.Updater.Fetch). The caller commits it. It
+// fails with ErrInvalid for development builds and with ErrConflict when the
+// running version is already the latest.
+func (s *Service) UpdateStage(ctx context.Context, exe string, opt upd.FetchOptions) (*upd.Staged, error) {
+	cur := s.currentVersion()
+	if upd.IsDev(cur) {
+		return nil, domain.New(domain.ErrInvalid, "this is a development build; it is not updated from releases")
+	}
+	u := s.Updater()
+	rel, err := u.Latest(ctx, s.cfg.Update.Channel)
+	if err != nil {
+		return nil, err
+	}
+	if upd.Compare(rel.Tag, cur) <= 0 {
+		return nil, domain.New(domain.ErrConflict, "STKR "+cur+" is up to date")
+	}
+	return u.Fetch(ctx, rel, exe, opt)
+}

@@ -1,5 +1,5 @@
 {{define "live"}}{{with .}}
-{{if .Banner}}<p class="note warn">{{.Banner}}</p>{{end}}
+{{if .Banner}}<p class="note warn">{{.Banner}} <a href="/ui/settings#updates">Update...</a></p>{{end}}
 <section class="now">
   {{if .Now}}
   <p class="now-line"><strong>{{.Now.Label}}</strong>{{if .Now.IdleSuspect}} <span class="tag warn">idle?</span>{{end}}</p>

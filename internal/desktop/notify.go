@@ -28,7 +28,7 @@ func (w *Watcher) Observe(st Status) []Notice {
 		out = append(out, Notice{Title: "Close the day", Text: "Your close-of-day is due. Use Close day in the STKR menu."})
 	}
 	if u := st.Update; u != nil && u.Available && u.Version != "" && u.Version != w.announcedVer {
-		out = append(out, Notice{Title: "Update available", Text: fmt.Sprintf("STKR %s is available. Run `stkr update` to install it.", u.Version)})
+		out = append(out, Notice{Title: "Update available", Text: fmt.Sprintf("STKR %s is available. Choose Install update in the STKR menu.", u.Version)})
 		w.announcedVer = u.Version
 	}
 	if st.AgentsWaiting > w.agents {

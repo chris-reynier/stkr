@@ -8,8 +8,6 @@ import (
 	"bytes"
 	"compress/gzip"
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -18,7 +16,6 @@ import (
 	"net/url"
 	"os"
 	"path"
-	"path/filepath"
 	"runtime"
 	"strings"
 	"time"
@@ -70,6 +67,10 @@ type Updater struct {
 	HTTP    *http.Client
 	GOOS    string
 	GOARCH  string
+	// Start runs the setup of a setup-installed copy (default: StartDetached).
+	Start Starter
+	// TempDir is where a downloaded setup is kept (default os.TempDir()).
+	TempDir string
 }
 
 // New returns an Updater for the default repository. GITHUB_TOKEN, when set,
@@ -282,88 +283,118 @@ func findChecksum(sums []byte, name string) (string, error) {
 	return "", domain.New(domain.ErrInvalid, "checksums.txt has no entry for "+name)
 }
 
-// Apply downloads rel, verifies its checksum and replaces the executable at
-// exePath. On any error the current executable is left untouched.
+// Apply downloads rel, verifies its checksum and installs it next to exePath
+// (see Fetch for how the install method is chosen). On any error the current
+// programs are left untouched.
 func (u *Updater) Apply(ctx context.Context, rel Release, exePath string) error {
-	asset, err := u.assetFor(rel)
+	st, err := u.Fetch(ctx, rel, exePath, FetchOptions{})
 	if err != nil {
 		return err
 	}
-	var sumAsset *Asset
-	for i := range rel.Assets {
-		if rel.Assets[i].Name == "checksums.txt" {
-			sumAsset = &rel.Assets[i]
+	if err := st.Commit(ctx); err != nil {
+		st.Discard()
+		return err
+	}
+	return nil
+}
+
+// programKind maps a program file name to "stkr" or "stkrw" ("" for any
+// other file).
+func programKind(name string) string {
+	switch strings.ToLower(path.Base(strings.ReplaceAll(name, "\\", "/"))) {
+	case "stkr", "stkr.exe":
+		return "stkr"
+	case "stkrw.exe":
+		return "stkrw"
+	}
+	return ""
+}
+
+// program is one STKR executable found in an archive.
+type program struct {
+	Name string // base name inside the archive, e.g. "stkrw.exe"
+	Kind string // "stkr" or "stkrw"
+	Data []byte
+}
+
+// extractPrograms returns every STKR executable of the archive (stkr and, on
+// Windows, stkrw), in archive order. It fails when there is none.
+func extractPrograms(archive []byte, name string) ([]program, error) {
+	unreadable := domain.New(domain.ErrInvalid, "unreadable archive")
+	var out []program
+	seen := map[string]bool{}
+	add := func(entry string, r io.Reader) error {
+		kind := programKind(entry)
+		if kind == "" || seen[kind] {
+			return nil
 		}
+		data, err := readBounded(r)
+		if err != nil {
+			return err
+		}
+		seen[kind] = true
+		out = append(out, program{Name: path.Base(strings.ReplaceAll(entry, "\\", "/")), Kind: kind, Data: data})
+		return nil
 	}
-	if sumAsset == nil {
-		return domain.New(domain.ErrInvalid, "release has no checksums.txt; refusing to install")
-	}
-	sums, err := u.get(ctx, sumAsset.URL, maxChecksumBytes, false)
-	if err != nil {
-		return err
-	}
-	want, err := findChecksum(sums, asset.Name)
-	if err != nil {
-		return err
-	}
-	archive, err := u.get(ctx, asset.URL, maxArchiveBytes, false)
-	if err != nil {
-		return err
-	}
-	got := sha256.Sum256(archive)
-	if hex.EncodeToString(got[:]) != want {
-		return domain.New(domain.ErrInvalid, "checksum mismatch: download is corrupt or tampered; update aborted, current version kept")
-	}
-	bin, err := extractBinary(archive, asset.Name)
-	if err != nil {
-		return err
-	}
-	return ReplaceExecutable(exePath, bin)
-}
-
-func isBinaryName(name string) bool {
-	b := path.Base(strings.ReplaceAll(name, "\\", "/"))
-	return b == "stkr" || b == "stkr.exe"
-}
-
-func extractBinary(archive []byte, name string) ([]byte, error) {
-	missing := domain.New(domain.ErrInvalid, "archive does not contain the stkr executable")
 	if strings.HasSuffix(name, ".zip") {
 		zr, err := zip.NewReader(bytes.NewReader(archive), int64(len(archive)))
 		if err != nil {
-			return nil, domain.New(domain.ErrInvalid, "unreadable archive")
+			return nil, unreadable
 		}
 		for _, f := range zr.File {
-			if f.FileInfo().IsDir() || !isBinaryName(f.Name) {
+			if f.FileInfo().IsDir() || programKind(f.Name) == "" {
 				continue
 			}
 			rc, err := f.Open()
 			if err != nil {
-				return nil, domain.New(domain.ErrInvalid, "unreadable archive")
+				return nil, unreadable
 			}
-			defer rc.Close()
-			return readBounded(rc)
+			err = add(f.Name, rc)
+			_ = rc.Close()
+			if err != nil {
+				return nil, err
+			}
 		}
-		return nil, missing
-	}
-	gz, err := gzip.NewReader(bytes.NewReader(archive))
-	if err != nil {
-		return nil, domain.New(domain.ErrInvalid, "unreadable archive")
-	}
-	defer gz.Close()
-	tr := tar.NewReader(gz)
-	for {
-		h, err := tr.Next()
-		if errors.Is(err, io.EOF) {
-			return nil, missing
-		}
+	} else {
+		gz, err := gzip.NewReader(bytes.NewReader(archive))
 		if err != nil {
-			return nil, domain.New(domain.ErrInvalid, "unreadable archive")
+			return nil, unreadable
 		}
-		if h.Typeflag == tar.TypeReg && isBinaryName(h.Name) {
-			return readBounded(tr)
+		defer gz.Close()
+		tr := tar.NewReader(gz)
+		for {
+			h, err := tr.Next()
+			if errors.Is(err, io.EOF) {
+				break
+			}
+			if err != nil {
+				return nil, unreadable
+			}
+			if h.Typeflag == tar.TypeReg && programKind(h.Name) != "" {
+				if err := add(h.Name, tr); err != nil {
+					return nil, err
+				}
+			}
 		}
 	}
+	if len(out) == 0 {
+		return nil, domain.New(domain.ErrInvalid, "archive does not contain the stkr executable")
+	}
+	return out, nil
+}
+
+// extractBinary returns the stkr (CLI) executable of the archive.
+func extractBinary(archive []byte, name string) ([]byte, error) {
+	progs, err := extractPrograms(archive, name)
+	if err != nil {
+		return nil, err
+	}
+	for _, p := range progs {
+		if p.Kind == "stkr" {
+			return p.Data, nil
+		}
+	}
+	return nil, domain.New(domain.ErrInvalid, "archive does not contain the stkr executable")
 }
 
 func readBounded(r io.Reader) ([]byte, error) {
@@ -380,71 +411,5 @@ func readBounded(r io.Reader) ([]byte, error) {
 	return data, nil
 }
 
-// rename is os.Rename; tests replace it to simulate failures.
-var rename = os.Rename
-
 // OldPath is where the previous executable is kept during a replacement.
 func OldPath(exePath string) string { return exePath + ".old" }
-
-// ReplaceExecutable writes data next to exePath, renames the current file to
-// <exe>.old and moves the new file into place. A running Windows executable
-// can be renamed but not overwritten, so the same steps are used on every OS.
-// If the final rename fails the old file is restored.
-func ReplaceExecutable(exePath string, data []byte) error {
-	dir := filepath.Dir(exePath)
-	mode := os.FileMode(0o755)
-	if fi, err := os.Stat(exePath); err == nil {
-		mode = fi.Mode().Perm() | 0o111
-	}
-	tmp, err := os.CreateTemp(dir, ".stkr-update-*")
-	if err != nil {
-		return fmt.Errorf("write new executable (is %s writable?): %w", dir, err)
-	}
-	tmpName := tmp.Name()
-	cleanup := func() { _ = os.Remove(tmpName) }
-	if _, err := tmp.Write(data); err != nil {
-		_ = tmp.Close()
-		cleanup()
-		return fmt.Errorf("write new executable: %w", err)
-	}
-	if err := tmp.Sync(); err != nil {
-		_ = tmp.Close()
-		cleanup()
-		return fmt.Errorf("write new executable: %w", err)
-	}
-	if err := tmp.Close(); err != nil {
-		cleanup()
-		return fmt.Errorf("write new executable: %w", err)
-	}
-	if err := os.Chmod(tmpName, mode); err != nil {
-		cleanup()
-		return fmt.Errorf("write new executable: %w", err)
-	}
-	old := OldPath(exePath)
-	_ = os.Remove(old)
-	if err := rename(exePath, old); err != nil {
-		cleanup()
-		return fmt.Errorf("move current executable aside: %w", err)
-	}
-	if err := rename(tmpName, exePath); err != nil {
-		rollback := rename(old, exePath)
-		cleanup()
-		if rollback != nil {
-			return fmt.Errorf("install new executable failed (%v) and rollback failed: %w", err, rollback)
-		}
-		return fmt.Errorf("install new executable (previous version restored): %w", err)
-	}
-	if runtime.GOOS != "windows" {
-		_ = os.Remove(old)
-	}
-	return nil
-}
-
-// CleanupOld removes the <exe>.old file left by a previous Windows update.
-// It is best effort and silent.
-func CleanupOld(exePath string) {
-	if exePath == "" {
-		return
-	}
-	_ = os.Remove(OldPath(exePath))
-}

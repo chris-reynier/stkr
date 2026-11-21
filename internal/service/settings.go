@@ -3,6 +3,10 @@ package service
 import (
 	"context"
 	"fmt"
+	"os"
+	"path/filepath"
+	"strconv"
+	"strings"
 
 	"github.com/chris-reynier/stkr/internal/config"
 	"github.com/chris-reynier/stkr/internal/domain"
@@ -37,9 +41,46 @@ func (s *Service) UpdateConfig(_ context.Context, pairs map[string]string) error
 	if err := cfg.SetAll(pairs); err != nil {
 		return err
 	}
+	if v, ok := pairs[AutostartKey]; ok {
+		// Applied before saving: if Windows refuses, the file is not changed.
+		on, err := strconv.ParseBool(v)
+		if err != nil {
+			return domain.New(domain.ErrInvalid, AutostartKey+" must be true or false")
+		}
+		if err := s.autostart.Set(on); err != nil {
+			return err
+		}
+		s.log.Info("autostart changed", "on", on)
+	}
 	if err := config.Save(s.configPath, cfg); err != nil {
 		return fmt.Errorf("save config: %w", err)
 	}
 	s.log.Info("config saved", "keys", len(pairs))
 	return nil
+}
+
+// DesktopExe returns the path of the desktop program (stkrw.exe): the running
+// program itself, or the one beside it. It is "" when there is none.
+func DesktopExe() string {
+	exe, err := os.Executable()
+	if err != nil {
+		return ""
+	}
+	if strings.EqualFold(filepath.Base(exe), "stkrw.exe") {
+		return exe
+	}
+	p := filepath.Join(filepath.Dir(exe), "stkrw.exe")
+	if _, err := os.Stat(p); err == nil {
+		return p
+	}
+	return ""
+}
+
+// AutostartKey is the settings key of the sign-in entry.
+const AutostartKey = "desktop.autostart"
+
+// AutostartEnabled reports whether the sign-in entry exists. The entry (not
+// the config file) is the truth: the installer writes it too.
+func (s *Service) AutostartEnabled() (bool, error) {
+	return s.autostart.Enabled()
 }

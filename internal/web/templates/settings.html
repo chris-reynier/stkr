@@ -32,16 +32,40 @@
 </form>
 </section>
 
+<section id="updates" class="card stack">
+  <h2>Updates</h2>
+  <p>Running STKR <strong>{{.Update.Current}}</strong>{{if .Update.Dev}} <span class="tag">development build</span>{{end}}.
+  {{- if .Update.Known}} Latest release: <strong>{{.Update.Latest}}</strong>{{if .Update.URL}} (<a href="{{.Update.URL}}">release notes</a>){{end}}, checked {{.Update.Checked}}.{{else}} No check has run yet.{{end}}</p>
+  {{if .Update.Dev}}<p class="muted">Development builds are not updated from releases.</p>
+  {{else if .Update.Available}}<p class="banner">STKR {{.Update.Latest}} is available.</p>
+  {{else if .Update.Known}}<p class="muted">STKR is up to date.</p>{{end}}
+  <div class="btnrow">
+    <form method="post" action="/ui/update/check" class="inline"><input type="hidden" name="next" value="/ui/settings#updates"><button class="secondary">Check now</button></form>
+    {{if and .Update.Available .Update.CanInstall}}<form method="post" action="/ui/update/apply" class="inline"><input type="hidden" name="next" value="/ui/settings#updates"><button>Install update</button></form>{{end}}
+  </div>
+  {{if and .Update.Available (not .Update.CanInstall)}}<p class="muted">{{.Update.Hint}}</p>{{end}}
+  <p class="muted">Updates are downloaded from GitHub Releases and checked against the published SHA-256 sums before anything is installed. Nothing is installed without a click.</p>
+</section>
+
+<section id="data" class="card stack">
+  <h2>Data</h2>
+  <div class="btnrow">
+    <form method="post" action="/ui/settings/backup" class="inline"><input type="hidden" name="next" value="/ui/settings#data"><button class="secondary">Back up now</button></form>
+    {{if .Desktop}}<form method="post" action="/ui/settings/open-data" class="inline"><input type="hidden" name="next" value="/ui/settings#data"><button class="secondary">Open data folder</button></form>{{end}}
+  </div>
+</section>
+
 <form method="post" action="/ui/settings/ai-test" id="ai-test" class="card stack">
   <input type="hidden" name="next" value="/ui/settings">
   <h3>AI provider</h3>
-  <p class="muted">Sends one fixed harmless sentence to the provider this server started with. After changing the AI settings below, restart stkr serve first.</p>
+  <p class="muted">Sends one fixed harmless sentence to the provider this server started with. After changing the AI settings below, wait for the restart (or restart <code>stkr serve</code>) first.</p>
   <button>Test provider</button>
 </form>
 
 <form method="post" action="/ui/settings/config" id="config" class="stack">
 <input type="hidden" name="next" value="/ui/settings">
-<p class="muted">Changes are saved to the config file. Restart <code>stkr serve</code> for them to take effect.</p>
+{{if .Desktop}}<p class="muted">Changes are saved to the config file and STKR restarts its server to apply them.</p>
+{{else}}<p class="muted">Changes are saved to the config file. Restart <code>stkr serve</code> for them to take effect.</p>{{end}}
 {{range .Sections}}
 <fieldset><legend>{{.Title}}</legend>
 {{range .Fields}}

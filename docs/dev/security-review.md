@@ -42,7 +42,8 @@ No telemetry. The complete list of outbound calls (source search for `http.Clien
 
 | Call | When | Off switch |
 |---|---|---|
-| GitHub API (release list) | `stkr update`, and while `serve` runs if `update.check` is true | `update.check: false` |
+| GitHub API (release list) | `stkr update`, "Check now" / "Check for updates", and while `serve` or the desktop app runs if `update.check` is true | `update.check: false` (explicit checks still work) |
+| GitHub release downloads (archive or setup, `checksums.txt`) | only when you press Install update or run `stkr update`; the SHA-256 is verified before anything is installed or started | do not install updates |
 | Bookmark title lookup (2 s, 512 KB, http/https, 5 redirects) | when you save a bookmark | `bookmarks.fetch_title: false` |
 | AI provider | only when a provider is enabled: Ollama URL, or the `claude` / `copilot` program | `ai.provider: none` |
 | Localhost health probe of `serve` | `stkr update`, to warn that a restart is needed | none needed (loopback) |

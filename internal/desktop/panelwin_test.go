@@ -78,7 +78,7 @@ func startAppWith(t *testing.T, tray *fakeTray, mut func(*Options)) (*runningApp
 func TestPanelAndWindowActions(t *testing.T) {
 	fw := &fakeWindows{}
 	r, _ := startAppWith(t, newFakeTray(), func(o *Options) { o.Windows = fw.factory(); o.PanelOnTop = true })
-	base := "http://127.0.0.1:" + fmt.Sprint(r.app.client.Port())
+	base := "http://127.0.0.1:" + fmt.Sprint(r.app.ServerPort())
 
 	r.app.Activate()
 	r.app.Show()

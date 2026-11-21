@@ -49,6 +49,8 @@ func TestMenuGolden(t *testing.T) {
 	busy.CloseDue = true
 	busy.AgentsWaiting = 2
 	busy.IdeasNew = 3
+	withUpdate := fixtureStatus()
+	withUpdate.Update = &UpdateStatus{Available: true, Version: "v0.3.0"}
 	tests := []struct {
 		name string
 		st   *Status
@@ -57,6 +59,7 @@ func TestMenuGolden(t *testing.T) {
 		{"menu_stopped", &Status{Contexts: []StatusContext{}, Version: "0.2.0"}},
 		{"menu_running", fixtureStatus()},
 		{"menu_busy", busy},
+		{"menu_update", withUpdate},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

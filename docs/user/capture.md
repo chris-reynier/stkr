@@ -94,7 +94,7 @@ Text from a key needs a plugin that can send a JSON body; if yours cannot, use t
 | `whisper.bin` | `whisper-cli` | Speech-to-text program. |
 | `whisper.model` | `""` | Model file passed with `-m`. |
 
-All keys are in [Configuration](configuration.md). Settings changes need a restart of `stkr serve`.
+All keys are in [Configuration](configuration.md). Settings changes need a restart of `stkr serve` (the Windows desktop app applies them by itself).
 
 ## Troubleshooting
 

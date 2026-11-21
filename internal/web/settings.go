@@ -1,13 +1,18 @@
 package web
 
 import (
+	"context"
 	"fmt"
 	"net/http"
+	"path/filepath"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/chris-reynier/stkr/internal/config"
 	"github.com/chris-reynier/stkr/internal/domain"
 	"github.com/chris-reynier/stkr/internal/service"
+	"github.com/chris-reynier/stkr/internal/update"
 )
 
 func init() {
@@ -28,12 +33,18 @@ type field struct {
 type section struct {
 	Title  string
 	Fields []field
+	// DesktopOnly sections are shown (and saved) only when the desktop app
+	// hosts the server.
+	DesktopOnly bool
 }
 
 type settingsData struct {
 	Contexts []domain.Context
 	Kinds    []domain.ContextKind
 	Sections []section
+	// Desktop is true when the desktop app hosts the server.
+	Desktop bool
+	Update  updateView
 }
 
 // specs lists the settings the page edits. Only these keys can be changed
@@ -81,12 +92,18 @@ func specs() []section {
 			{Key: "ollama.url", Label: "URL", Type: "text"},
 			{Key: "ollama.model", Label: "Model", Type: "text"},
 		}},
-		{Title: "Desktop app (Windows)", Fields: []field{
+		{Title: "Desktop app (Windows)", DesktopOnly: true, Fields: []field{
+			{Key: "desktop.autostart", Label: "Start STKR when I sign in", Type: "bool", Help: "Adds or removes the sign-in entry for the current Windows user."},
 			{Key: "desktop.notifications", Label: "Show notifications", Type: "bool", Help: "Close reminder, update found, agent waiting."},
 			{Key: "desktop.poll_seconds", Label: "Refresh every (seconds)", Type: "number", Help: "2 to 60."},
 			{Key: "desktop.panel_on_top", Label: "Keep the panel on top", Type: "bool", Help: "Also the pin in the panel and the tray menu."},
 			{Key: "desktop.hotkey", Label: "Panel hotkey", Type: "text", Help: "For example Ctrl+Alt+Space. Empty turns it off."},
 			{Key: "desktop.open_panel_on_start", Label: "Show the panel at start", Type: "bool"},
+		}},
+		{Title: "Update checks", Fields: []field{
+			{Key: "update.check", Label: "Check for updates", Type: "bool", Help: "One anonymous request to the GitHub API at start and then every interval. Off means no request unless you press Check now."},
+			{Key: "update.channel", Label: "Channel", Type: "select", Options: []string{"stable", "beta"}, Help: "Beta also offers prereleases."},
+			{Key: "update.interval_hours", Label: "Check every (hours)", Type: "number"},
 		}},
 		{Title: "MCP", Fields: []field{
 			{Key: "mcp.enabled", Label: "Enabled", Type: "bool"},
@@ -135,10 +152,65 @@ func formPairs(r *http.Request, isSecret func(key string) bool) map[string]strin
 func mountSettings(ui *UI) {
 	ui.Get("GET /ui/settings", ui.settings)
 	ui.Post("POST /ui/settings/config", func(r *http.Request, _ string) (string, error) {
-		if err := ui.Svc.UpdateConfig(r.Context(), formPairs(r, config.IsSecret)); err != nil {
+		pairs := formPairs(r, config.IsSecret)
+		if !ui.desktop() {
+			// The desktop settings are hidden here and are not accepted either.
+			for k := range pairs {
+				if strings.HasPrefix(k, "desktop.") {
+					delete(pairs, k)
+				}
+			}
+		}
+		if err := ui.Svc.UpdateConfig(r.Context(), pairs); err != nil {
 			return "", err
 		}
-		return "Settings saved. Restart stkr serve to apply them.", nil
+		if ui.desktop() && ui.hooks.SettingsSaved != nil {
+			ui.hooks.SettingsSaved()
+			ui.restarting.Store(true)
+			return "Settings saved. STKR is restarting to apply them.", nil
+		}
+		return "Settings saved. Restart `stkr serve` for them to take effect.", nil
+	})
+	ui.Post("POST /ui/update/check", func(r *http.Request, _ string) (string, error) {
+		ctx, cancel := context.WithTimeout(r.Context(), 30*time.Second)
+		defer cancel()
+		res, err := ui.Svc.UpdateCheck(ctx)
+		if err != nil {
+			return "", err
+		}
+		if res.Available {
+			return fmt.Sprintf("STKR %s is available.", res.Latest), nil
+		}
+		return fmt.Sprintf("STKR is up to date (latest release: %s).", res.Latest), nil
+	})
+	ui.Post("POST /ui/update/apply", func(r *http.Request, _ string) (string, error) {
+		if !ui.canInstallUpdate() {
+			return "", domain.New(domain.ErrConflict, "This page can only install an update when the STKR desktop app runs the server. "+updateHint)
+		}
+		info, ok := ui.Svc.UpdatePending(r.Context())
+		if !ok {
+			return "", domain.New(domain.ErrConflict, "No update is waiting. Press Check now first.")
+		}
+		if err := ui.hooks.RequestUpdate(r.Context()); err != nil {
+			return "", err
+		}
+		return fmt.Sprintf("Installing STKR %s. STKR closes and starts again by itself, this takes about a minute.", info.Latest), nil
+	})
+	ui.Post("POST /ui/settings/backup", func(r *http.Request, _ string) (string, error) {
+		p, err := ui.Svc.Backup(r.Context())
+		if err != nil {
+			return "", err
+		}
+		return "Backup saved: " + filepath.Base(p), nil
+	})
+	ui.Post("POST /ui/settings/open-data", func(_ *http.Request, _ string) (string, error) {
+		if !ui.desktop() || ui.hooks.OpenDataFolder == nil {
+			return "", domain.New(domain.ErrConflict, "The data folder can only be opened from the desktop app. Use the path shown on this page.")
+		}
+		if err := ui.hooks.OpenDataFolder(); err != nil {
+			return "", err
+		}
+		return "Opened the data folder.", nil
 	})
 	ui.Post("POST /ui/settings/ai-test", func(r *http.Request, _ string) (string, error) {
 		st, err := ui.Svc.AIStatus(r.Context())
@@ -194,6 +266,44 @@ func mountSettings(ui *UI) {
 	})
 }
 
+func versionOrUnknown(v string) string {
+	if v == "" {
+		return "unknown"
+	}
+	return v
+}
+
+// updateView is the "Updates" box of the settings page.
+type updateView struct {
+	Current string
+	// Dev is true for development builds, which are never updated.
+	Dev bool
+	// Known is true when a check result is cached.
+	Known     bool
+	Latest    string
+	Available bool
+	URL       string
+	Checked   string
+	// CanInstall shows the Install update button; otherwise Hint says how to
+	// update.
+	CanInstall bool
+	Hint       string
+}
+
+func (u *UI) updateView(r *http.Request) updateView {
+	v := updateView{Current: u.Svc.CurrentVersion(), CanInstall: u.canInstallUpdate()}
+	v.Dev = update.IsDev(v.Current)
+	if info, ok := u.Svc.UpdateInfo(r.Context()); ok {
+		v.Known, v.Latest, v.URL = true, info.Latest, info.URL
+		v.Available = info.Available && !v.Dev
+		v.Checked = info.Checked.In(u.Svc.Location()).Format("2006-01-02 15:04")
+	}
+	if !v.CanInstall {
+		v.Hint = updateHint
+	}
+	return v
+}
+
 func (u *UI) settings(w http.ResponseWriter, r *http.Request) {
 	ctxs, err := u.Svc.ListContexts(r.Context(), service.ContextFilter{IncludeParked: true})
 	if err != nil {
@@ -205,16 +315,29 @@ func (u *UI) settings(w http.ResponseWriter, r *http.Request) {
 		u.Fail(w, err)
 		return
 	}
+	var secs []section
+	for _, s := range buildSections(cfg, config.IsSecret) {
+		if s.DesktopOnly && !u.desktop() {
+			continue
+		}
+		// The sign-in entry itself, not the config file, tells the truth: the
+		// installer writes it too.
+		if s.DesktopOnly {
+			if on, err := u.Svc.AutostartEnabled(); err == nil {
+				for i := range s.Fields {
+					if s.Fields[i].Key == service.AutostartKey {
+						s.Fields[i].Value = strconv.FormatBool(on)
+					}
+				}
+			}
+		}
+		secs = append(secs, s)
+	}
 	u.Render(w, r, "settings", "Settings", settingsData{
 		Contexts: ctxs,
 		Kinds:    domain.ContextKinds,
-		Sections: buildSections(cfg, config.IsSecret),
+		Sections: secs,
+		Desktop:  u.desktop(),
+		Update:   u.updateView(r),
 	})
-}
-
-func versionOrUnknown(v string) string {
-	if v == "" {
-		return "unknown"
-	}
-	return v
 }

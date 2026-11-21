@@ -323,6 +323,10 @@ func (t *winTray) SetHotkey(k hotkey.Key, done func(error)) {
 			_, _, _ = procUnregisterHotKey.Call(uintptr(t.hwnd), hotkeyID)
 			t.hotkeyOn = false
 		}
+		if k.IsZero() { // turned off in Settings
+			done(nil)
+			return
+		}
 		r, _, err := procRegisterHotKey.Call(uintptr(t.hwnd), hotkeyID, uintptr(k.Mods|modNoRepeat), uintptr(k.VK))
 		if r == 0 {
 			done(fmt.Errorf("register hotkey: %w", err))

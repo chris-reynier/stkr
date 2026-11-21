@@ -9,6 +9,8 @@ import (
 	"path/filepath"
 	"slices"
 	"strconv"
+	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -16,6 +18,7 @@ import (
 	"github.com/chris-reynier/stkr/internal/config"
 	"github.com/chris-reynier/stkr/internal/httpapi"
 	"github.com/chris-reynier/stkr/internal/service"
+	"github.com/chris-reynier/stkr/internal/testutil"
 	"github.com/chris-reynier/stkr/internal/update"
 )
 
@@ -28,9 +31,13 @@ func newService(t *testing.T, mutate func(*config.Config)) *service.Service {
 	if mutate != nil {
 		mutate(cfg)
 	}
+	cfgPath := filepath.Join(dir, "config.yaml")
+	if err := config.Save(cfgPath, cfg); err != nil {
+		t.Fatal(err)
+	}
 	clk := clock.NewFake(time.Date(2026, 11, 16, 9, 0, 0, 0, time.UTC))
 	svc, err := service.Open(context.Background(), filepath.Join(dir, "stkr.db"), clk, cfg,
-		service.Deps{BackupDir: filepath.Join(dir, "backups"), Version: "0.2.0", Updater: offlineUpdater()})
+		service.Deps{BackupDir: filepath.Join(dir, "backups"), ConfigPath: cfgPath, Version: "0.2.0", Updater: offlineUpdater(), Autostart: &testutil.FakeAutostart{}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -177,4 +184,54 @@ func offlineUpdater() *update.Updater {
 	u := update.New()
 	u.APIBase = "http://127.0.0.1:1"
 	return u
+}
+
+func postForm(t *testing.T, base, path string) int {
+	t.Helper()
+	req, err := http.NewRequest(http.MethodPost, base+path, strings.NewReader("next=/ui/settings"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.Header.Set("Origin", base)
+	c := &http.Client{CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
+	resp, err := c.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	return resp.StatusCode
+}
+
+// The desktop callbacks reach the web UI only when the desktop app hosts the
+// server; `stkr serve` never runs them even if they are set.
+func TestDesktopHooksOnlyWhenHostedByDesktop(t *testing.T) {
+	for _, hostedBy := range []string{HostedByDesktop, HostedByServe} {
+		t.Run(hostedBy, func(t *testing.T) {
+			var folder, saved atomic.Int32
+			svc := newService(t, nil)
+			h, err := Start(context.Background(), svc, Options{
+				Port: 0, HostedBy: hostedBy,
+				OnOpenDataFolder: func() error { folder.Add(1); return nil },
+				OnSettingsSaved:  func() { saved.Add(1) },
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer func() { _ = h.Shutdown(context.Background()) }()
+			if code := postForm(t, h.URL(), "/ui/settings/open-data"); code != http.StatusSeeOther {
+				t.Fatalf("open-data: %d", code)
+			}
+			if code := postForm(t, h.URL(), "/ui/settings/config"); code != http.StatusSeeOther {
+				t.Fatalf("config: %d", code)
+			}
+			want := int32(0)
+			if hostedBy == HostedByDesktop {
+				want = 1
+			}
+			if folder.Load() != want || saved.Load() != want {
+				t.Errorf("hooks ran folder=%d saved=%d, want %d", folder.Load(), saved.Load(), want)
+			}
+		})
+	}
 }

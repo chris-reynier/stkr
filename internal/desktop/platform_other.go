@@ -17,3 +17,5 @@ func platformSignalInstance(string, bool) error {
 }
 
 func platformOpen(string) error { return domain.New(domain.ErrUnavailable, UnsupportedMessage) }
+
+func platformConfirm(string, string) bool { return false }
