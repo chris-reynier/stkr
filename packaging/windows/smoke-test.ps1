@@ -59,7 +59,7 @@ $meta = Get-Content (Join-Path $app 'install.json') -Raw | ConvertFrom-Json
 Assert ($meta.method -eq 'setup' -and $meta.version) "install.json says setup, version $($meta.version)"
 Assert (Test-Path $link) 'Start menu shortcut exists'
 Assert (-not (Get-ItemProperty $runKey -Name STKR -ErrorAction SilentlyContinue)) 'no sign-in entry without the autostart task'
-$entries = (Get-UserPath -split ';') | Where-Object { $_.TrimEnd('\') -ieq $app }
+$entries = ((Get-UserPath) -split ';') | Where-Object { $_.TrimEnd('\') -ieq $app }
 Assert (@($entries).Count -eq 1) 'user PATH holds the install folder once'
 
 $out = & (Join-Path $app 'stkr.exe') version
@@ -73,7 +73,7 @@ Assert ((Get-HomeState) -eq $homeBefore) 'data folder untouched by install and -
 
 # --- upgrade in place --------------------------------------------------------
 Install-Setup
-$entries = (Get-UserPath -split ';') | Where-Object { $_.TrimEnd('\') -ieq $app }
+$entries = ((Get-UserPath) -split ';') | Where-Object { $_.TrimEnd('\') -ieq $app }
 Assert (@($entries).Count -eq 1) 'PATH entry is not duplicated by an upgrade'
 
 # --- uninstall ---------------------------------------------------------------
