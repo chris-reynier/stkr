@@ -84,6 +84,8 @@ Start-Process -FilePath $unins -ArgumentList '/VERYSILENT /SUPPRESSMSGBOXES /NOR
 Wait-Until { -not (Test-Path (Join-Path $app 'stkr.exe')) } 'program files to be removed' | Out-Null
 Wait-Until { -not (Test-Path $app) } 'the install folder to be removed' | Out-Null
 Assert (-not (Test-Path $link)) 'Start menu shortcut removed'
+# The PATH entry is removed in the last uninstall step, a moment after the folder goes.
+try { Wait-Until { (Get-UserPath) -ceq $pathBefore } 'the user PATH to return' 30 | Out-Null } catch { Write-Host "PATH now: '$(Get-UserPath)' before: '$pathBefore'" }
 Assert ((Get-UserPath) -ceq $pathBefore) 'user PATH is exactly as before the install'
 Assert ((Get-HomeState) -eq $homeBefore) 'data folder still untouched after uninstall'
 Remove-Item $home_ -Recurse -Force
