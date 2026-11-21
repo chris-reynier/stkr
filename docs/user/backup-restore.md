@@ -6,7 +6,7 @@ STKR keeps all data in one SQLite file, `stkr.db`, in the data folder. Backups a
 
 | Backup | When | Kept |
 |---|---|---|
-| `stkr-<UTC time>.db`, for example `stkr-20261120T183000Z.db` | `stkr backup`; also once a day by the background server `stkr serve` (coming in a later release) | The newest 14. Older ones are deleted automatically. |
+| `stkr-<UTC time>.db`, for example `stkr-20261120T183000Z.db` | `stkr backup`; also once a day by the background server `stkr serve` | The newest 14. Older ones are deleted automatically. |
 | `pre-migrate-<version>-<UTC time>.db` | Automatically, before a new STKR version changes the database layout. `<version>` is the layout version the copy contains. | Never deleted automatically. |
 | `legacy-<UTC time>/` | `stkr import-legacy`. See [Legacy import](legacy-import.md). | Never deleted automatically. |
 

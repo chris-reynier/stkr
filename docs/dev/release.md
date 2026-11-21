@@ -30,3 +30,7 @@ CI runs both on every pull request and fails when the binary is 30 MB or larger.
 ## If a release is wrong
 
 Delete the GitHub release and the tag (`git push origin :refs/tags/vX.Y.Z`), fix the problem and tag again with a new patch version. Users who already updated keep working; `stkr update --version vX.Y.Z` can move them.
+
+## Changelog policy
+
+There is no hand-written `CHANGELOG.md`. The changelog of each GitHub release is generated from the Conventional Commit messages of the squashed pull requests (`feat`, `fix`, `docs`; `test`, `ci` and `chore` are left out), so write the pull request title as the line you want users to read. For a release with something to explain, add `docs/dev/release-notes-vX.Y.Z.md` (highlights, known limitations, manual checks) before tagging and link it from the release description.

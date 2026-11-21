@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -22,10 +23,16 @@ var projects = []Project{{ID: "acme", Label: "ACME"}, {ID: "other", Label: "Othe
 
 const goodCleanup = `{"title":"T","text":"Clean text","suggested_project":"acme"}`
 
-func ollamaServer(t *testing.T, answers ...string) (*httptest.Server, *atomic.Int32, *[]map[string]any) {
+// ollamaServer fakes Ollama. The returned function gives a copy of the request
+// bodies seen so far; handlers of timed-out requests may still be running, so
+// the log is guarded.
+func ollamaServer(t *testing.T, answers ...string) (*httptest.Server, *atomic.Int32, func() []map[string]any) {
 	t.Helper()
 	var n atomic.Int32
-	var reqs []map[string]any
+	var (
+		mu   sync.Mutex
+		reqs []map[string]any
+	)
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/api/version" {
 			_, _ = io.WriteString(w, `{"version":"0.9.9"}`)
@@ -34,7 +41,9 @@ func ollamaServer(t *testing.T, answers ...string) (*httptest.Server, *atomic.In
 		body, _ := io.ReadAll(r.Body)
 		var m map[string]any
 		_ = json.Unmarshal(body, &m)
+		mu.Lock()
 		reqs = append(reqs, m)
+		mu.Unlock()
 		i := int(n.Add(1)) - 1
 		if i >= len(answers) {
 			i = len(answers) - 1
@@ -50,7 +59,11 @@ func ollamaServer(t *testing.T, answers ...string) (*httptest.Server, *atomic.In
 		_, _ = w.Write(out)
 	}))
 	t.Cleanup(srv.Close)
-	return srv, &n, &reqs
+	return srv, &n, func() []map[string]any {
+		mu.Lock()
+		defer mu.Unlock()
+		return append([]map[string]any(nil), reqs...)
+	}
 }
 
 func newOllamaProvider(t *testing.T, url string, timeout time.Duration) *Guarded {
@@ -98,7 +111,7 @@ func TestOllamaCleanup(t *testing.T) {
 					t.Errorf("fallback = %+v", got)
 				}
 			}
-			r := (*reqs)[0]
+			r := reqs()[0]
 			if r["format"] != "json" || r["think"] != false || r["stream"] != false || r["model"] != "m" {
 				t.Errorf("request fields = %v", r)
 			}

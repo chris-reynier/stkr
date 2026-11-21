@@ -266,3 +266,37 @@ func TestBatchMinutesAlias(t *testing.T) {
 		t.Error("batch_minutes 0 accepted")
 	}
 }
+
+// WriteFileAtomic replaces the content in one step, leaves no temp file and
+// keeps the old file when the write cannot happen.
+func TestWriteFileAtomic(t *testing.T) {
+	dir := t.TempDir()
+	p := filepath.Join(dir, "f.txt")
+	if err := os.WriteFile(p, []byte("old"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := WriteFileAtomic(p, []byte("new content"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if b, _ := os.ReadFile(p); string(b) != "new content" {
+		t.Fatalf("content = %q", b)
+	}
+	if ents, _ := os.ReadDir(dir); len(ents) != 1 {
+		t.Fatalf("temp files left behind: %v", ents)
+	}
+	// A directory in the way makes the final rename fail: the target is
+	// untouched and the temp file is removed.
+	blocked := filepath.Join(dir, "blocked")
+	if err := os.MkdirAll(filepath.Join(blocked, "child"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := WriteFileAtomic(blocked, []byte("x"), 0o600); err == nil {
+		t.Fatal("want an error when the target is a directory")
+	}
+	if ents, _ := os.ReadDir(dir); len(ents) != 2 {
+		t.Fatalf("temp files left behind after failure: %v", ents)
+	}
+	if err := WriteFileAtomic(filepath.Join(dir, "missing", "f"), []byte("x"), 0o600); err == nil {
+		t.Fatal("want an error for a missing directory")
+	}
+}

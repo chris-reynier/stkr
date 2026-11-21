@@ -2,11 +2,13 @@
 package testutil
 
 import (
+	"context"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
 	"testing"
+	"time"
 
 	"github.com/chris-reynier/stkr/internal/config"
 )
@@ -32,7 +34,9 @@ func BuildFakebin(t testing.TB) string {
 		name += ".exe"
 	}
 	out := filepath.Join(t.TempDir(), name)
-	cmd := exec.Command("go", "build", "-o", out, "github.com/chris-reynier/stkr/internal/testutil/fakebin")
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+	defer cancel()
+	cmd := exec.CommandContext(ctx, "go", "build", "-o", out, "github.com/chris-reynier/stkr/internal/testutil/fakebin")
 	cmd.Env = append(os.Environ(), "CGO_ENABLED=0")
 	if b, err := cmd.CombinedOutput(); err != nil {
 		t.Fatalf("build fakebin: %v\n%s", err, b)
