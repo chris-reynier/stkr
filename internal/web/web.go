@@ -39,6 +39,11 @@ type Page struct {
 	// Order sorts the navigation (Today 10, Week 20, Agents 30, Ideas 40,
 	// Links 50, Settings 90).
 	Order int
+	// Hidden keeps the page out of the navigation (the desktop panel).
+	Hidden bool
+	// Compact renders the page in the compact shell (no header or nav) instead
+	// of the full layout.
+	Compact bool
 	// Templates holds "<ID>.html" at its root. Nil uses the templates embedded
 	// in this package.
 	Templates fs.FS
@@ -66,6 +71,8 @@ type UI struct {
 	mux   *http.ServeMux
 	pages []Page
 	tmpl  map[string]*template.Template
+	// compact lists the pages rendered in the compact shell.
+	compact map[string]bool
 }
 
 // Options configure Mount.
@@ -106,6 +113,13 @@ var funcs = template.FuncMap{
 		}
 		return fmt.Sprintf("%.2f", h)
 	},
+	"elapsed": func(sec int64) string {
+		if sec < 0 {
+			sec = 0
+		}
+		m := sec / 60
+		return fmt.Sprintf("%dh%02d", m/60, m%60)
+	},
 	"join": strings.Join,
 	"inc":  func(i int) int { return i + 1 },
 }
@@ -121,7 +135,7 @@ func Mount(mux *http.ServeMux, svc *service.Service, opts Options) (*UI, error) 
 	regMu.Unlock()
 	sort.SliceStable(pages, func(i, j int) bool { return pages[i].Order < pages[j].Order })
 
-	ui := &UI{Svc: svc, log: lg, mux: mux, pages: pages, tmpl: map[string]*template.Template{}}
+	ui := &UI{Svc: svc, log: lg, mux: mux, pages: pages, tmpl: map[string]*template.Template{}, compact: map[string]bool{}}
 	for _, p := range pages {
 		t, err := template.New("layout.html").Funcs(funcs).ParseFS(templateFS, "templates/layout.html")
 		if err != nil {
@@ -136,6 +150,9 @@ func Mount(mux *http.ServeMux, svc *service.Service, opts Options) (*UI, error) 
 			return nil, fmt.Errorf("page %s: %w", p.ID, err)
 		}
 		ui.tmpl[p.ID] = t
+		if p.Compact {
+			ui.compact[p.ID] = true
+		}
 	}
 
 	sub, err := fs.Sub(staticFS, "static")
@@ -275,11 +292,32 @@ func (u *UI) Render(w http.ResponseWriter, r *http.Request, pageID, title string
 	}
 	v := View{Title: title, Page: pageID, Flash: takeFlash(w, r), Banner: u.Svc.UpdateBanner(r.Context()), Data: data}
 	for _, p := range u.pages {
-		v.Nav = append(v.Nav, NavItem{Title: p.Title, Path: p.Path, Active: p.ID == pageID})
+		if !p.Hidden {
+			v.Nav = append(v.Nav, NavItem{Title: p.Title, Path: p.Path, Active: p.ID == pageID})
+		}
 	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.Header().Set("Cache-Control", "no-store")
-	if err := t.ExecuteTemplate(w, "layout", v); err != nil {
+	shell := "layout"
+	if u.compact[pageID] {
+		shell = "compact"
+	}
+	if err := t.ExecuteTemplate(w, shell, v); err != nil {
 		u.log.Error("render failed", "page", pageID, "err", err)
+	}
+}
+
+// Fragment writes one named template of a page without any shell, for HTMX
+// partial refreshes (a template "<name>" defined in the page's file).
+func (u *UI) Fragment(w http.ResponseWriter, pageID, name string, data any) {
+	t := u.tmpl[pageID]
+	if t == nil {
+		http.Error(w, "unknown page", http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Header().Set("Cache-Control", "no-store")
+	if err := t.ExecuteTemplate(w, name, data); err != nil {
+		u.log.Error("render failed", "page", pageID, "fragment", name, "err", err)
 	}
 }
