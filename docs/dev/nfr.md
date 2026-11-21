@@ -91,4 +91,13 @@ One run right after a fresh build showed 62.8 MB in the first minute and 20 MB i
 
 ## Panel open
 
-Not measured on the development machine: opening the panel shows a window, which this document's method does not do on a working desktop. The number comes from the CI job summary and from manual check M16 (Task Manager: the memory of `stkrw.exe` plus all `msedgewebview2.exe` rows). WebView2 shares most of its memory with other Edge-based programs on the same machine, so the total depends on what else is running; the 80 MB target is for a machine where nothing else uses WebView2.
+Not measured on the development machine: opening the panel shows a window, which the method above does not do on a working desktop. It was measured once by the CI job on a windows-latest runner (pull request for this release, 20 s after the panel opened):
+
+| Measure | Value | Target |
+|---|---|---|
+| stkrw.exe working set | 38.5 MB | |
+| 6 `msedgewebview2.exe` child processes, working set | 269.9 MB | |
+| Total working set | 308.4 MB | under 80 MB |
+| Cold start to the tray icon (real icon) | 0.06 s | under 1.5 s |
+
+**The 80 MB target is not met by this measure.** Adding up working sets counts pages shared between the WebView2 processes (and with other Edge-based programs) several times, so 308 MB overstates what the machine really uses, but the panel clearly costs far more than the closed state (about 20 MB). Private bytes or "Memory (private working set)" in Task Manager is the fairer number and is part of manual check M16. Closing the panel does not end its WebView2 processes (the window is only hidden, so it opens quickly); quitting STKR does. The target is kept as the goal; reducing the cost (for example ending the web view when the panel stays hidden for a while) is on the backlog.

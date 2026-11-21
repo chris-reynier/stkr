@@ -37,7 +37,7 @@ STKR now has a Windows desktop app. After one installer there is an STKR icon ne
 
 - [Acceptance matrix](acceptance.md), including the new desktop section and manual checks M10 to M16.
 - [Security review](security-review.md), addendum for the desktop app, installer and in-app update.
-- [Performance numbers](nfr.md#desktop-app-v020): with the panel closed the app starts its tray in about 0.05 s and uses about 20 MB (working set); the panel-open numbers are measured by the CI job and manual check M16.
+- [Performance numbers](nfr.md#desktop-app-v020): with the panel closed the app starts its tray in about 0.05 s and uses about 20 MB (working set); with the panel open the WebView2 processes bring the total working set to about 300 MB on a CI runner (shared pages are counted several times; the 80 MB target is not met by that measure, see the performance numbers) - manual check M16 measures the private working set.
 - Desktop code is tested with fakes (the Win32 and WebView2 layers are excluded from the 70% coverage rule because they cannot run headless): `internal/desktop` is at 91% without them.
 
 ## Known limitations
