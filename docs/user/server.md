@@ -4,6 +4,8 @@
 
 `stkr serve` runs STKR's local HTTP server. Stream Deck keys and scripts use it to switch contexts, and it draws the key images. Your browser can use it too: see [Web UI](web-ui.md). It also runs background jobs: a daily backup (checked hourly), a sweeper that idles agent instances that stopped reporting, the close reminder (see [Daily loop](daily-loop.md)), the phone inbox watcher (see [Capture](capture.md)), the AI idea sorter when a provider is enabled (see [AI providers](ai-providers.md)) and the update check (see [Update](update.md)).
 
+On Windows, the [desktop app](desktop.md) (`stkrw.exe`) runs the same server for you and shows it as an icon next to the clock, so you do not need to start `stkr serve` yourself.
+
 The server listens on `127.0.0.1` only, so other computers cannot reach it. It also rejects requests with a foreign `Host` or `Origin` header. The server has no telemetry. The only network calls STKR makes are the ones you configure: the update check (one request to GitHub, can be turned off), the title lookup for bookmarks (can be turned off) and your AI provider if you enable one.
 
 ## How to use
