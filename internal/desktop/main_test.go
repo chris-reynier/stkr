@@ -23,8 +23,10 @@ var signalQuit bool
 func hooks(t *testing.T, tray Tray, already bool, signalled *bool) {
 	t.Helper()
 	oldS, oldT, oldA, oldSig, oldO, oldW := supported, newTray, acquireInstance, signalInstance, openTarget, newWindows
+	oldC, oldE, oldR, oldU := confirmBox, executablePath, relaunchProgram, newUpdater
 	t.Cleanup(func() {
 		supported, newTray, acquireInstance, signalInstance, openTarget, newWindows = oldS, oldT, oldA, oldSig, oldO, oldW
+		confirmBox, executablePath, relaunchProgram, newUpdater = oldC, oldE, oldR, oldU
 	})
 	// Tests never open a window.
 	newWindows = func(string, bool, *slog.Logger) WindowsFactory { return nil }
@@ -44,6 +46,11 @@ func hooks(t *testing.T, tray Tray, already bool, signalled *bool) {
 		return nil
 	}
 	openTarget = func(string) error { return nil }
+	// Never look at (or clean up beside) the test binary, never start programs.
+	exe := filepath.Join(t.TempDir(), "stkrw.exe")
+	executablePath = func() (string, error) { return exe, nil }
+	relaunchProgram = func(context.Context, string, []string) error { return nil }
+	confirmBox = func(string, string) bool { return false }
 }
 
 func TestMainUnsupported(t *testing.T) {

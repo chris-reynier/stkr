@@ -25,5 +25,7 @@ Open >
 Data folder  {folder:data}
 Logs folder  {folder:logs}
 ----
+Check for updates  {check-update}
+----
 About STKR 0.2.0  {about}
 Quit  {quit}

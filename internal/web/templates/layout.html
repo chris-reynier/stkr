@@ -14,11 +14,15 @@
   <a class="brand" href="/ui/today">STKR</a>
   <nav>{{range .Nav}}<a href="{{.Path}}"{{if .Active}} class="active" aria-current="page"{{end}}>{{.Title}}</a>{{end}}</nav>
 </header>
-<div id="update-banner" class="banner" {{if not .Banner}}hidden{{end}}>{{.Banner}}</div>
+<div id="update-banner" class="banner" {{if not .Banner}}hidden{{end}}>{{.Banner}}
+{{- if .Banner}} <a href="/ui/settings#updates">Details</a>
+{{- if .BannerInstall}} <form method="post" action="/ui/update/apply" class="inline"><input type="hidden" name="next" value="/ui/settings#updates"><button>Install update</button></form>
+{{- else}} <span class="muted">{{.BannerHint}}</span>{{end}}{{end}}</div>
 <main>
 {{with .Flash}}<p class="flash {{if .Error}}error{{else}}ok{{end}}" role="status">{{.Text}}</p>{{end}}
 {{template "content" .}}
 </main>
+{{if .Restarting}}<div data-wait-restart hidden></div>{{end}}
 </body>
 </html>
 {{end}}

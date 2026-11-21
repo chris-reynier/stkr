@@ -97,6 +97,18 @@ type Options struct {
 	Hotkey string
 	// OpenPanelOnStart shows the panel once the server is reachable.
 	OpenPanelOnStart bool
+	// Updater runs the update steps (nil: the app cannot update itself).
+	Updater UpdateOps
+	// Confirm asks a yes/no question in a message box (nil counts as "no").
+	Confirm func(title, text string) bool
+	// Exe is the path of this program, started again after an update.
+	Exe string
+	// Reload reads the saved settings again for a server restart (nil keeps
+	// the current ones).
+	Reload func() (Settings, error)
+	// JustUpdated is set for the instance started by an update: it says so in
+	// a notification once it is running.
+	JustUpdated bool
 }
 
 // App is the tray application.
@@ -120,6 +132,11 @@ type App struct {
 	winBroken  bool
 	panelOnTop bool
 	startShown bool
+
+	busy        bool
+	relaunch    *relaunch
+	announcedUp bool
+	hotkeyOn    bool
 }
 
 // NewApp builds an App. Call Run.
@@ -174,21 +191,31 @@ func (a *App) Ready() {
 }
 
 func (a *App) loop() {
-	t := time.NewTicker(a.opts.Poll)
-	defer t.Stop()
 	for {
 		a.tick()
+		a.mu.Lock()
+		poll := a.opts.Poll
+		a.mu.Unlock()
+		t := time.NewTimer(poll)
 		select {
 		case <-a.ctx.Done():
+			t.Stop()
 			return
 		case <-t.C:
 		case <-a.refresh:
+			t.Stop()
 		}
 	}
 }
 
 // tick connects if needed and refreshes the status.
 func (a *App) tick() {
+	a.mu.Lock()
+	busy := a.busy
+	a.mu.Unlock()
+	if busy {
+		return // the server is down on purpose (update or restart)
+	}
 	a.mu.Lock()
 	c, h := a.client, a.hosted
 	a.mu.Unlock()
@@ -225,6 +252,13 @@ func (a *App) tick() {
 	}
 	a.setStatus(&st)
 	a.mu.Lock()
+	announce := a.opts.JustUpdated && !a.announcedUp
+	a.announcedUp = a.announcedUp || announce
+	a.mu.Unlock()
+	if announce {
+		a.notify(Notice{Title: "STKR updated", Text: updatedText(a.opts.Version)})
+	}
+	a.mu.Lock()
 	first := a.opts.OpenPanelOnStart && !a.startShown
 	a.startShown = a.startShown || first
 	a.mu.Unlock()
@@ -250,7 +284,9 @@ func Decide(ctx context.Context, port int) (Mode, bool) {
 
 // connect attaches to a running server or starts the in-process one.
 func (a *App) connect() *Client {
+	a.mu.Lock()
 	port := a.opts.Port
+	a.mu.Unlock()
 	mode, portBusy := Decide(a.ctx, port)
 	if mode == ModeAttach {
 		c := NewClient(port)
@@ -302,12 +338,13 @@ func (a *App) setStatus(st *Status) {
 	a.mu.Lock()
 	a.status = st
 	var notes []Notice
+	notify := a.opts.Notifications
 	if st != nil {
 		notes = a.watch.Observe(*st)
 	}
 	a.mu.Unlock()
 	a.opts.Tray.SetIcon(IconFor(st), Tooltip(st))
-	if a.opts.Notifications {
+	if notify {
 		for _, n := range notes {
 			a.notify(n)
 		}
@@ -389,6 +426,14 @@ func (a *App) do(id string) (string, error) {
 	c, mode, st := a.client, a.mode, a.status
 	a.mu.Unlock()
 	switch id {
+	case ActCheckUpdate:
+		return a.checkUpdate()
+	case ActInstallUpdate:
+		return a.installUpdate(true)
+	case ActInstallNow:
+		return a.installUpdate(false)
+	case ActRestartServer:
+		return a.restartServer()
 	case ActPinPanel:
 		return "", a.togglePin()
 	case ActHidePanel:
@@ -622,13 +667,23 @@ func (a *App) togglePin() error {
 // setupHotkey registers the global hotkey; a key that is already taken by
 // another program is reported in a notification.
 func (a *App) setupHotkey() {
-	k, err := hotkey.Parse(a.opts.Hotkey)
+	a.mu.Lock()
+	text := a.opts.Hotkey
+	a.mu.Unlock()
+	k, err := hotkey.Parse(text)
 	if err != nil {
 		a.log.Warn("invalid hotkey in the configuration")
 		a.notify(Notice{Title: "STKR", Error: true, Text: err.Error() + ". Fix desktop.hotkey in Settings."})
 		return
 	}
+	a.mu.Lock()
+	was := a.hotkeyOn
+	a.hotkeyOn = !k.IsZero()
+	a.mu.Unlock()
 	if k.IsZero() {
+		if was {
+			a.opts.Tray.SetHotkey(k, func(error) {}) // turn the old key off
+		}
 		return
 	}
 	a.opts.Tray.SetHotkey(k, func(err error) {

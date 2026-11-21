@@ -31,6 +31,34 @@
     }
   });
 
+  // After Settings were saved the desktop app restarts its server. The page
+  // waits until the server answers again, then reloads itself.
+  var waiting = false;
+  function waitForRestart() {
+    if (waiting || !document.querySelector('[data-wait-restart]')) {
+      return;
+    }
+    waiting = true;
+    var tries = 0;
+    var probe = function () {
+      tries++;
+      fetch('/healthz', { cache: 'no-store' }).then(function (r) {
+        if (r.ok && tries > 1) {
+          window.location.reload();
+        } else if (tries < 60) {
+          setTimeout(probe, 600);
+        }
+      }).catch(function () {
+        if (tries < 60) {
+          setTimeout(probe, 600);
+        }
+      });
+    };
+    setTimeout(probe, 1200);
+  }
+  document.addEventListener('DOMContentLoaded', waitForRestart);
+  document.addEventListener('htmx:afterSettle', waitForRestart);
+
   if (!host) {
     return;
   }

@@ -5,6 +5,7 @@
 package web
 
 import (
+	"context"
 	"embed"
 	"errors"
 	"fmt"
@@ -16,6 +17,7 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/chris-reynier/stkr/internal/domain"
@@ -72,13 +74,40 @@ type UI struct {
 	pages []Page
 	tmpl  map[string]*template.Template
 	// compact lists the pages rendered in the compact shell.
-	compact map[string]bool
+	compact  map[string]bool
+	hostedBy string
+	hooks    Hooks
+	// restarting is set once a restart of the hosting server was scheduled; the
+	// next page rendered carries the wait-and-reload marker, once.
+	restarting atomic.Bool
 }
 
 // Options configure Mount.
 type Options struct {
 	Logger *slog.Logger
+	// HostedBy says who runs the server: "serve" (default) or "desktop". The
+	// update install button, the desktop settings and live settings apply
+	// exist only for "desktop".
+	HostedBy string
+	// Hooks connect the UI to the desktop app that hosts the server. They are
+	// ignored unless HostedBy is "desktop".
+	Hooks Hooks
 }
+
+// Hooks are the callbacks of the desktop app that hosts the server. Every one
+// of them returns quickly and does its work in the background: the request
+// that triggered it is served by the very server they stop.
+type Hooks struct {
+	// RequestUpdate starts "download, stop the server, install, restart".
+	RequestUpdate func(ctx context.Context) error
+	// SettingsSaved restarts the server so saved settings take effect.
+	SettingsSaved func()
+	// OpenDataFolder opens the data folder in the file manager.
+	OpenDataFolder func() error
+}
+
+// HostedByDesktop is the Options.HostedBy value of a server run by stkrw.
+const HostedByDesktop = "desktop"
 
 // NavItem is one navigation entry.
 type NavItem struct {
@@ -94,7 +123,14 @@ type View struct {
 	Flash *Flash
 	// Banner is the text of the update banner slot; empty hides it.
 	Banner string
-	Data   any
+	// BannerInstall shows the Install update button in the banner (desktop
+	// hosted); otherwise BannerHint tells how to update.
+	BannerInstall bool
+	BannerHint    string
+	// Restarting is true once the server is about to restart; the page then
+	// waits for it and reloads.
+	Restarting bool
+	Data       any
 }
 
 // Flash is a one-time message shown after a redirect.
@@ -135,7 +171,10 @@ func Mount(mux *http.ServeMux, svc *service.Service, opts Options) (*UI, error) 
 	regMu.Unlock()
 	sort.SliceStable(pages, func(i, j int) bool { return pages[i].Order < pages[j].Order })
 
-	ui := &UI{Svc: svc, log: lg, mux: mux, pages: pages, tmpl: map[string]*template.Template{}, compact: map[string]bool{}}
+	ui := &UI{Svc: svc, log: lg, mux: mux, pages: pages, tmpl: map[string]*template.Template{}, compact: map[string]bool{}, hostedBy: opts.HostedBy}
+	if ui.desktop() {
+		ui.hooks = opts.Hooks
+	}
 	for _, p := range pages {
 		t, err := template.New("layout.html").Funcs(funcs).ParseFS(templateFS, "templates/layout.html")
 		if err != nil {
@@ -290,7 +329,13 @@ func (u *UI) Render(w http.ResponseWriter, r *http.Request, pageID, title string
 		http.Error(w, "unknown page", http.StatusInternalServerError)
 		return
 	}
-	v := View{Title: title, Page: pageID, Flash: takeFlash(w, r), Banner: u.Svc.UpdateBanner(r.Context()), Data: data}
+	v := View{Title: title, Page: pageID, Flash: takeFlash(w, r), Banner: u.Svc.UpdateBanner(r.Context()), Data: data, Restarting: u.restarting.Swap(false)}
+	if v.Banner != "" {
+		v.BannerInstall = u.canInstallUpdate()
+		if !v.BannerInstall {
+			v.BannerHint = updateHint
+		}
+	}
 	for _, p := range u.pages {
 		if !p.Hidden {
 			v.Nav = append(v.Nav, NavItem{Title: p.Title, Path: p.Path, Active: p.ID == pageID})
@@ -321,3 +366,12 @@ func (u *UI) Fragment(w http.ResponseWriter, pageID, name string, data any) {
 		u.log.Error("render failed", "page", pageID, "fragment", name, "err", err)
 	}
 }
+
+// desktop reports whether the desktop app hosts this server.
+func (u *UI) desktop() bool { return u.hostedBy == HostedByDesktop }
+
+// canInstallUpdate reports whether this server can install an update itself.
+func (u *UI) canInstallUpdate() bool { return u.desktop() && u.hooks.RequestUpdate != nil }
+
+// updateHint tells how to update when the page has no Install button.
+const updateHint = "Run `stkr update` in a terminal, then restart `stkr serve`."

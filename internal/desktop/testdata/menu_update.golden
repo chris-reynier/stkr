@@ -1,0 +1,36 @@
+Acme & Co portal - 1h12  (disabled)
+----
+Show panel  {show-panel}
+Open STKR  {open-app}
+----
+Switch to >
+  [x] Acme & Co portal  {switch:acme}
+  Meeting  {switch:meeting}
+  break  {switch:break}
+  ----
+  Manage projects...  {open:/ui/settings}
+Stop  {stop}
+----
+Capture idea...  {capture-idea}
+Save clipboard as bookmark  {bookmark-clipboard}
+----
+Start day  {start-day}
+Close day  {close-day}
+Import answer from clipboard  {import-clipboard}
+----
+Open >
+  Today  {open:/ui/today}
+  Week  {open:/ui/week}
+  Agents  {open:/ui/agents}
+  Ideas  {open:/ui/ideas}
+  Links  {open:/ui/links}
+  Settings  {open:/ui/settings}
+[x] Keep panel on top  {pin-panel}
+Data folder  {folder:data}
+Logs folder  {folder:logs}
+----
+Check for updates  {check-update}
+Install update v0.3.0...  {install-update}
+----
+About STKR 0.2.0  {about}
+Quit  {quit}

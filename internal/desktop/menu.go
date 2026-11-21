@@ -121,6 +121,13 @@ func BuildMenu(st *Status, o MenuOptions) []MenuItem {
 		MenuItem{ID: ActDataFolder, Label: "Data folder"},
 		MenuItem{ID: ActLogsFolder, Label: "Logs folder"},
 		sep,
+		MenuItem{ID: ActCheckUpdate, Label: "Check for updates", Disabled: offline},
+	)
+	if !offline && st.Update != nil && st.Update.Available && st.Update.Version != "" {
+		items = append(items, MenuItem{ID: ActInstallUpdate, Label: "Install update " + shorten(st.Update.Version, 20) + "..."})
+	}
+	items = append(items,
+		sep,
 		MenuItem{ID: ActAbout, Label: "About STKR " + version},
 		MenuItem{ID: ActQuit, Label: "Quit"},
 	)
