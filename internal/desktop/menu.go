@@ -17,7 +17,13 @@ const (
 	ActLogsFolder    = "folder:logs"
 	ActAbout         = "about"
 	ActQuit          = "quit"
-	ActOpenPanel     = "open-panel"
+	ActOpenPanel     = "open-panel"   // left click on the icon: toggle the panel
+	ActShowPanel     = "show-panel"   // show the panel (menu, second launch)
+	ActHidePanel     = "hide-panel"   // from the panel (Esc)
+	ActPinPanel      = "pin-panel"    // toggle "keep the panel on top"
+	ActCaptureIdea   = "capture-idea" // panel with the idea box focused
+	ActHotkey        = "hotkey"       // the global hotkey: toggle, idea box focused
+	ActOpenApp       = "open-app"     // the app window on Today
 	prefixSwitch     = "switch:"
 	prefixOpen       = "open:"
 	pageToday        = "/ui/today"
@@ -43,9 +49,16 @@ var openPages = []struct{ label, path string }{
 	{"Ideas", pageIdeas}, {"Links", "/ui/links"}, {"Settings", pageSettings},
 }
 
+// MenuOptions carries the settings the menu shows.
+type MenuOptions struct {
+	Version    string
+	PanelOnTop bool
+}
+
 // BuildMenu builds the tray menu from the last status. st is nil when the
 // server could not be reached; the actions that need it are then disabled.
-func BuildMenu(st *Status, version string) []MenuItem {
+func BuildMenu(st *Status, o MenuOptions) []MenuItem {
+	version := o.Version
 	sep := MenuItem{Separator: true}
 	offline := st == nil
 	header := "Nothing running"
@@ -58,7 +71,12 @@ func BuildMenu(st *Status, version string) []MenuItem {
 			header += " (idle?)"
 		}
 	}
-	items := []MenuItem{{Label: header, Disabled: true}, sep}
+	items := []MenuItem{
+		{Label: header, Disabled: true}, sep,
+		{ID: ActShowPanel, Label: "Show panel", Disabled: offline},
+		{ID: ActOpenApp, Label: "Open STKR", Disabled: offline},
+		sep,
+	}
 
 	var switchTo []MenuItem
 	if !offline {
@@ -78,7 +96,7 @@ func BuildMenu(st *Status, version string) []MenuItem {
 		MenuItem{Label: "Switch to", Children: switchTo, Disabled: offline},
 		MenuItem{ID: ActStop, Label: "Stop", Disabled: offline || st.Now == nil},
 		sep,
-		MenuItem{ID: prefixOpen + pageIdeas, Label: "Capture idea...", Disabled: offline},
+		MenuItem{ID: ActCaptureIdea, Label: "Capture idea...", Disabled: offline},
 		MenuItem{ID: ActBookmarkClip, Label: "Save clipboard as bookmark", Disabled: offline},
 		sep,
 		MenuItem{ID: ActStartDay, Label: "Start day", Disabled: offline},
@@ -99,6 +117,7 @@ func BuildMenu(st *Status, version string) []MenuItem {
 	}
 	items = append(items,
 		MenuItem{Label: "Open", Children: open, Disabled: offline},
+		MenuItem{ID: ActPinPanel, Label: "Keep panel on top", Checked: o.PanelOnTop},
 		MenuItem{ID: ActDataFolder, Label: "Data folder"},
 		MenuItem{ID: ActLogsFolder, Label: "Logs folder"},
 		sep,

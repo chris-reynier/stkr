@@ -27,6 +27,7 @@ Published:
 | [`mcp-tools.md`](mcp-tools.md) | MCP tools, resource and prompts of `stkr mcp`: inputs, outputs, errors, privacy (v1, generated) |
 | [`release-assets.md`](release-assets.md) | Release asset names, checksums.txt, `stkr update` JSON and exit codes (v1) |
 | [`status-api.md`](status-api.md) | `GET /api/status`: current context, switch list, close due, update, counters, `hosted_by` (v1) |
+| [`desktop-windows.md`](desktop-windows.md) | Desktop panel and app window: page-to-app messages, `window.json`, fallbacks (v1) |
 
 Added with the features that introduce them:
 

@@ -15,6 +15,7 @@ import (
 	"gopkg.in/yaml.v3"
 
 	"github.com/chris-reynier/stkr/internal/domain"
+	"github.com/chris-reynier/stkr/internal/hotkey"
 )
 
 // Config is the contents of config.yaml. Fields tagged secret:"true" are
@@ -104,6 +105,13 @@ type Desktop struct {
 	Notifications bool `yaml:"notifications"`
 	// PollSeconds is how often the tray refreshes its status (2..60).
 	PollSeconds int `yaml:"poll_seconds"`
+	// PanelOnTop keeps the panel above other windows (the pin toggle).
+	PanelOnTop bool `yaml:"panel_on_top"`
+	// Hotkey is the global key that shows or hides the panel, for example
+	// "Ctrl+Alt+Space". Empty turns it off.
+	Hotkey string `yaml:"hotkey"`
+	// OpenPanelOnStart shows the panel when the app starts.
+	OpenPanelOnStart bool `yaml:"open_panel_on_start"`
 }
 
 // Update configures the update check.
@@ -145,7 +153,7 @@ func Default() *Config {
 		Launch:    Launch{Command: "code", Args: []string{"{path}"}},
 		Update:    Update{Check: true, Channel: "stable", IntervalHours: 24},
 		Bookmarks: Bookmarks{FetchTitle: true},
-		Desktop:   Desktop{Notifications: true, PollSeconds: 5},
+		Desktop:   Desktop{Notifications: true, PollSeconds: 5, PanelOnTop: true, Hotkey: "Ctrl+Alt+Space"},
 	}
 }
 
@@ -195,6 +203,9 @@ func (c *Config) Validate() error {
 	}
 	if c.Desktop.PollSeconds < 2 || c.Desktop.PollSeconds > 60 {
 		bad("desktop.poll_seconds must be between 2 and 60 (got %d)", c.Desktop.PollSeconds)
+	}
+	if _, err := hotkey.Parse(c.Desktop.Hotkey); err != nil {
+		bad("desktop.hotkey: %v", err)
 	}
 	if c.Update.IntervalHours < 1 {
 		bad("update.interval_hours must be at least 1")

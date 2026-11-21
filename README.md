@@ -11,7 +11,7 @@ Status: 0.x, early but complete for daily use. Windows first, with Linux and mac
 | Switch contexts with one command or key; time blocks, idle and gap detection, day and week reports | [Time tracking](docs/user/time-tracking.md), [Contexts](docs/user/contexts.md) |
 | Local web UI: Today timeline with editing, Week totals, Tempo CSV export, Settings | [Web UI](docs/user/web-ui.md) |
 | Local HTTP API and Stream Deck keys with live key images (listens on 127.0.0.1 only) | [Server](docs/user/server.md), [Stream Deck](docs/user/stream-deck.md) |
-| Windows desktop app (`stkrw.exe`): notification-area icon showing what runs, menu for switch, stop, capture and the daily loop | [Desktop app](docs/user/desktop.md) |
+| Windows desktop app (`stkrw.exe`): notification-area icon showing what runs, an always-on-top panel (switch, stop, capture idea, daily loop) with a global hotkey, and a full app window | [Desktop app](docs/user/desktop.md) |
 | Agents hub: see all coding-agent windows and jump to the one that needs you | [Agents](docs/user/agents.md) |
 | Daily loop: Start Day and Close Day prompts, import of the AI answer, project log files, close reminder | [Daily loop](docs/user/daily-loop.md) |
 | Capture: text and voice ideas, phone inbox, meeting actions and decisions, bookmarks | [Capture](docs/user/capture.md), [Bookmarks](docs/user/bookmarks.md) |

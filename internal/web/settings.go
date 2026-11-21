@@ -84,6 +84,9 @@ func specs() []section {
 		{Title: "Desktop app (Windows)", Fields: []field{
 			{Key: "desktop.notifications", Label: "Show notifications", Type: "bool", Help: "Close reminder, update found, agent waiting."},
 			{Key: "desktop.poll_seconds", Label: "Refresh every (seconds)", Type: "number", Help: "2 to 60."},
+			{Key: "desktop.panel_on_top", Label: "Keep the panel on top", Type: "bool", Help: "Also the pin in the panel and the tray menu."},
+			{Key: "desktop.hotkey", Label: "Panel hotkey", Type: "text", Help: "For example Ctrl+Alt+Space. Empty turns it off."},
+			{Key: "desktop.open_panel_on_start", Label: "Show the panel at start", Type: "bool"},
 		}},
 		{Title: "MCP", Fields: []field{
 			{Key: "mcp.enabled", Label: "Enabled", Type: "bool"},

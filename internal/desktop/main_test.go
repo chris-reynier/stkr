@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"log/slog"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -18,10 +19,12 @@ import (
 // hooks replaces the platform hooks for one test.
 func hooks(t *testing.T, tray Tray, already bool, signalled *bool) {
 	t.Helper()
-	oldS, oldT, oldA, oldSig, oldO := supported, newTray, acquireInstance, signalInstance, openTarget
+	oldS, oldT, oldA, oldSig, oldO, oldW := supported, newTray, acquireInstance, signalInstance, openTarget, newWindows
 	t.Cleanup(func() {
-		supported, newTray, acquireInstance, signalInstance, openTarget = oldS, oldT, oldA, oldSig, oldO
+		supported, newTray, acquireInstance, signalInstance, openTarget, newWindows = oldS, oldT, oldA, oldSig, oldO, oldW
 	})
+	// Tests never open a window.
+	newWindows = func(string, bool, *slog.Logger) WindowsFactory { return nil }
 	supported = true
 	newTray = func(string) (Tray, error) {
 		if tray == nil {
@@ -137,5 +140,81 @@ func TestMainHostsAndQuits(t *testing.T) {
 		if _, err := os.Stat(filepath.Join(home, "logs", f)); err != nil {
 			t.Errorf("%s: %v", f, err)
 		}
+	}
+}
+
+func TestSavePanelOnTopKeepsTheOtherSettings(t *testing.T) {
+	home := filepath.Join(t.TempDir(), "home")
+	if err := config.EnsureHome(home); err != nil {
+		t.Fatal(err)
+	}
+	cfg := config.Default()
+	cfg.Port = 7999
+	cfg.Desktop.Hotkey = "Ctrl+Shift+K"
+	if err := config.Save(config.Path(home), cfg); err != nil {
+		t.Fatal(err)
+	}
+	for _, on := range []bool{false, true, false} {
+		if err := savePanelOnTop(home, on); err != nil {
+			t.Fatal(err)
+		}
+		got, _, err := config.Load(config.Path(home))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got.Desktop.PanelOnTop != on || got.Port != 7999 || got.Desktop.Hotkey != "Ctrl+Shift+K" {
+			t.Fatalf("after %v: %+v port %d", on, got.Desktop, got.Port)
+		}
+	}
+	// A damaged file is reported, not overwritten.
+	if err := os.WriteFile(config.Path(home), []byte("port: [not a number"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := savePanelOnTop(home, true); err == nil {
+		t.Fatal("a broken config file was overwritten")
+	}
+}
+
+func TestMainPassesDesktopSettings(t *testing.T) {
+	// The windows factory gets the saved pin state and the data folder.
+	home := filepath.Join(t.TempDir(), "home")
+	if err := config.EnsureHome(home); err != nil {
+		t.Fatal(err)
+	}
+	port := freePort(t)
+	cfg := config.Default()
+	cfg.Desktop.PanelOnTop = false
+	cfg.Port = port
+	cfg.Desktop.Hotkey = ""
+	if err := config.Save(config.Path(home), cfg); err != nil {
+		t.Fatal(err)
+	}
+	tray := newFakeTray()
+	hooks(t, tray, false, nil)
+	var gotHome string
+	var gotOnTop = true
+	newWindows = func(h string, onTop bool, _ *slog.Logger) WindowsFactory {
+		gotHome, gotOnTop = h, onTop
+		return nil
+	}
+	done := make(chan int, 1)
+	go func() { done <- Main([]string{"-home", home}, &bytes.Buffer{}, "0.2.0") }()
+	<-tray.ready
+	tray.Quit()
+	select {
+	case code := <-done:
+		if code != 0 {
+			t.Fatalf("exit code %d", code)
+		}
+	case <-time.After(10 * time.Second):
+		t.Fatal("Main did not return")
+	}
+	if gotHome != home || gotOnTop {
+		t.Errorf("factory got home %q onTop %v", gotHome, gotOnTop)
+	}
+	tray.mu.Lock()
+	defer tray.mu.Unlock()
+	if len(tray.hotkeys) != 0 {
+		t.Errorf("hotkeys registered although it is empty: %v", tray.hotkeys)
 	}
 }

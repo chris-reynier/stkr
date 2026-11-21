@@ -1,0 +1,50 @@
+{{define "live"}}{{with .}}
+{{if .Banner}}<p class="note warn">{{.Banner}}</p>{{end}}
+<section class="now">
+  {{if .Now}}
+  <p class="now-line"><strong>{{.Now.Label}}</strong>{{if .Now.IdleSuspect}} <span class="tag warn">idle?</span>{{end}}</p>
+  <p class="elapsed">{{elapsed .Now.ElapsedS}}</p>
+  <form method="post" action="/ui/stop" class="stop"><input type="hidden" name="next" value="{{.Self}}"><button class="secondary">Stop</button></form>
+  {{else}}
+  <p class="now-line">Nothing running</p>
+  {{end}}
+</section>
+{{if .CloseDue}}<p class="note warn">Time to close the day.</p>{{end}}
+<section class="switch">
+  {{if .ShowFilter}}<input type="search" id="q" name="q" value="{{.Filter}}" placeholder="Filter {{.Total}} contexts" autocomplete="off" aria-label="Filter contexts" hx-preserve="true" hx-get="/ui/panel/live" hx-trigger="input changed delay:200ms" hx-target="#live" hx-swap="innerHTML">{{end}}
+  <form method="post" action="/ui/switch" class="contexts">
+    <input type="hidden" name="next" value="{{.Self}}">
+    {{range .Contexts}}<button name="ctx" value="{{.ID}}"{{if .Current}} class="current" aria-current="true"{{end}}>{{.Label}}</button>{{else}}<p class="muted">{{if .Filter}}No context matches.{{else}}No contexts yet. Add one in Settings.{{end}}</p>{{end}}
+  </form>
+</section>
+<p class="agents"><a href="/ui/agents">Agents waiting: {{.AgentsWaiting}}</a></p>
+{{end}}{{end}}
+
+{{define "content"}}{{with .Data}}
+<div class="panel">
+  <div id="live" hx-get="/ui/panel/live" hx-trigger="every {{.PollSeconds}}s, refresh" hx-include="#q" hx-swap="innerHTML">{{template "live" .}}</div>
+
+  <form method="post" action="/ui/ideas/add" class="capture">
+    <input type="hidden" name="next" value="{{.Self}}">
+    <label for="idea" class="sr">Capture an idea</label>
+    <textarea id="idea" name="text" rows="3" maxlength="10000" placeholder="Capture an idea. Enter saves, Shift+Enter adds a line." data-enter-submit="true"{{if .FocusIdea}} autofocus{{end}}></textarea>
+    <div class="row">
+      <label class="check"><input type="checkbox" name="personal" value="1"> Personal</label>
+      <button>Save idea</button>
+      {{if .CanRecord}}<button formaction="/ui/ideas/record" formnovalidate class="secondary">{{if .Recording}}Stop recording{{else}}Record voice{{end}}</button>{{end}}
+    </div>
+  </form>
+
+  <section class="daily">
+    <form method="post" action="/ui/day/start"><input type="hidden" name="next" value="{{.Self}}"><button class="secondary">Start day</button></form>
+    <form method="post" action="/ui/close"><input type="hidden" name="next" value="{{.Self}}"><button class="secondary{{if .CloseDue}} due{{end}}">Close day</button></form>
+    <form method="post" action="/ui/import/clipboard"><input type="hidden" name="next" value="{{.Self}}"><button class="secondary">Import from clipboard</button></form>
+  </section>
+
+  <footer class="foot">
+    <a class="button" href="/ui/today">Open STKR</a>
+    <a href="/ui/settings">Settings</a>
+    <button type="button" class="secondary pin" data-desktop="pin" hidden aria-pressed="{{if .Pinned}}true{{else}}false{{end}}" title="Keep this panel above other windows">{{if .Pinned}}Pinned{{else}}Pin{{end}}</button>
+  </footer>
+</div>
+{{end}}{{end}}

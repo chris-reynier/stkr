@@ -1,0 +1,29 @@
+/* Compact shell used by the desktop panel (/ui/panel). Colours come from app.css. */
+body.compact { font-size: 14px; line-height: 1.35; padding: .6rem .7rem .8rem; user-select: none; }
+body.compact textarea, body.compact input { user-select: text; }
+body.compact .flash { margin: 0 0 .5rem; padding: .35rem .6rem; }
+.panel { display: grid; gap: .7rem; }
+.panel p { margin: 0; }
+.panel .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+.panel .note { padding: .35rem .6rem; border-radius: 6px; font-size: .9rem; }
+.panel .note.warn { background: var(--warn-bg); color: var(--warn); }
+.panel section.now { display: grid; grid-template-columns: 1fr auto; align-items: center; column-gap: .6rem; padding: .6rem .7rem; background: var(--card); border: 1px solid var(--line); border-radius: 8px; }
+.panel .now-line { grid-column: 1; font-size: 1.05rem; overflow-wrap: anywhere; }
+.panel .elapsed { grid-column: 1; font-size: 1.6rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+.panel form.stop { grid-column: 2; grid-row: 1 / span 2; margin: 0; }
+.panel section.switch { display: grid; gap: .4rem; }
+.panel input[type=search] { width: 100%; }
+.panel form.contexts { display: flex; flex-wrap: wrap; gap: .35rem; max-height: 11rem; overflow-y: auto; }
+.panel form.contexts button { flex: 0 1 auto; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.panel form.contexts button.current { background: var(--ok-bg); color: var(--ok); border-color: var(--ok); }
+.panel .agents a { font-size: .9rem; }
+.panel form.capture { display: grid; gap: .4rem; }
+.panel form.capture textarea { resize: vertical; min-height: 4.2rem; font-family: inherit; }
+.panel .row { display: flex; gap: .5rem; align-items: center; flex-wrap: wrap; }
+.panel .row .check { margin-right: auto; color: var(--muted); }
+.panel section.daily { display: flex; gap: .35rem; flex-wrap: wrap; }
+.panel section.daily form { margin: 0; }
+.panel button.due { border-color: var(--warn); color: var(--warn); }
+.panel footer.foot { display: flex; gap: .7rem; align-items: center; border-top: 1px solid var(--line); padding-top: .6rem; }
+.panel footer.foot .pin { margin-left: auto; }
+.panel footer.foot .pin[aria-pressed=true] { background: var(--accent); color: var(--accent-fg); }

@@ -179,7 +179,9 @@ The web UI is part of the same server and follows the same Host and Origin guard
 | `GET /ui/ideas/{id}/audio` | The recording of an idea. Serves only a regular file inside the audio folder; anything else is `404`. |
 | `GET /ui/links?q=` | Bookmarks: add, search, pin, delete |
 | `GET /ui/settings` | Contexts and configuration forms |
-| `GET /static/...` | Embedded stylesheet and HTMX |
+| `GET /ui/panel?focus=idea` | Compact page for the desktop panel: current context, switch buttons, idea box, daily buttons. `focus=idea` focuses the idea box. Not in the navigation. |
+| `GET /ui/panel/live?q=` | The part of the panel that refreshes (HTML fragment: now, switch list, agents line, reminders). `q` filters the switch list by label or id. |
+| `GET /static/...` | Embedded stylesheets (`app.css`, `panel.css`), HTMX and `desktop.js` (idea box Enter key and the desktop app bridge) |
 
 Form actions are `POST` with `application/x-www-form-urlencoded`. Every one answers `303` to the local path in the form field `next` (anything that is not a `/ui/` path becomes `/ui/today`) and shows a one-time message from a `stkr_flash` cookie (HttpOnly, SameSite=Strict).
 
@@ -195,6 +197,7 @@ Form actions are `POST` with `application/x-www-form-urlencoded`. Every one answ
 | `POST /ui/day/start` | none (copies the Start Day prompt) |
 | `POST /ui/close` | `paste` (`1` to paste into the agent window) |
 | `POST /ui/import` | `text` (the AI answer). Failure flashes the error; `next` is normally `/ui/today#import` |
+| `POST /ui/import/clipboard` | none; imports the text on the clipboard of the machine running the server (the desktop panel's "Import from clipboard"). Failure flashes the error |
 | `POST /ui/agents/go`, `.../queue` | `id` (instance) |
 | `POST /ui/agents/go-next`, `.../ack-done` | none |
 | `POST /ui/agents/map` | `workspace`, `context` (sets the context workdir) |
