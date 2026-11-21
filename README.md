@@ -17,13 +17,13 @@ Status: 0.x, early but complete for daily use. Windows first, with Linux and mac
 | Capture: text and voice ideas, phone inbox, meeting actions and decisions, bookmarks | [Capture](docs/user/capture.md), [Bookmarks](docs/user/bookmarks.md) |
 | Optional AI cleanup of ideas and a Start Day plan (Ollama, Claude Code or GitHub Copilot) | [AI providers](docs/user/ai-providers.md) |
 | MCP server (`stkr mcp`) for Claude Code and GitHub Copilot | [MCP server](docs/user/mcp.md) |
-| Daily backups, self-update from GitHub Releases | [Backup and restore](docs/user/backup-restore.md), [Update](docs/user/update.md) |
+| Daily backups, update from GitHub Releases (tray, Settings or `stkr update`) | [Backup and restore](docs/user/backup-restore.md), [Update](docs/user/update.md) |
 
 Everything works without AI, without a Stream Deck and without a network.
 
 ## Install
 
-On Windows, download `stkr_<version>_windows_amd64_setup.exe` from the [releases page](https://github.com/chris-reynier/stkr/releases) and double-click it: it installs `stkr` and the desktop app for your user, no admin rights needed. On Linux and macOS, unpack the archive and put `stkr` on your PATH. Details, including the Windows SmartScreen note, are in [Install](docs/user/install.md). Update later with `stkr update` ([Update](docs/user/update.md)).
+On Windows, download `stkr_<version>_windows_amd64_setup.exe` from the [releases page](https://github.com/chris-reynier/stkr/releases) and double-click it: it installs `stkr` and the desktop app for your user, no admin rights needed. On Linux and macOS, unpack the archive and put `stkr` on your PATH. Details, including the Windows SmartScreen note, are in [Install](docs/user/install.md). Update later with one click from the tray icon or Settings, or with `stkr update` ([Update](docs/user/update.md)).
 
 To build from source you need Go 1.27 or newer: `go build -o stkr ./cmd/stkr`. The Windows desktop app: `go build -ldflags "-H windowsgui" -o stkrw.exe ./cmd/stkrw`.
 

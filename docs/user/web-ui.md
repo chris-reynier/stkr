@@ -36,7 +36,7 @@ The columns and rounding rules are in [the Tempo CSV contract](../contracts/temp
 
 ## Configuration keys
 
-Settings saves to `config.yaml`. The running server keeps its old values until you restart `stkr serve`. Settings does not edit `port` or `allowed_origins`; use `stkr config set` for those. The keys are described in [Configuration](configuration.md). The ones that matter most here:
+Settings saves to `config.yaml`. When the Windows desktop app runs the server, the server restarts by itself and the new values apply at once ([Desktop app](desktop.md)). Under `stkr serve` the running server keeps its old values until you restart it. Settings does not edit `port` or `allowed_origins`; use `stkr config set` for those. The Settings page also has the **Updates** box (check, install, [Update](update.md)), **Update checks** (check on or off, channel, interval), **Back up now**, and, under the desktop app, the **Desktop app** section and **Open data folder**. The keys are described in [Configuration](configuration.md). The ones that matter most here:
 
 | Key | Effect |
 |---|---|
@@ -49,5 +49,5 @@ Settings saves to `config.yaml`. The running server keeps its old values until y
 - **The page does not load**: check that `stkr serve` is running and that the address uses the right port. Browsers on another computer cannot connect.
 - **"split time must be after the event and before the next event and now"**: pick a time inside the block. A block cannot be split in the future.
 - **A context is missing from the CSV**: it has no Tempo ticket, or it is a personal or system context. Check the "Unmapped contexts" list on Week.
-- **Settings changes do not apply**: restart `stkr serve`.
+- **Settings changes do not apply**: under `stkr serve`, restart it. Under the Windows desktop app they apply by themselves within a few seconds; if not, check `logs/desktop.log`.
 - **Excel shows odd characters**: the file is UTF-8 without a byte order mark. Import it with "UTF-8" selected, or open it from Excel's Data menu.

@@ -212,5 +212,9 @@ Form actions are `POST` with `application/x-www-form-urlencoded`. Every one answ
 | `POST /ui/settings/ctx/{id}/park`, `.../activate` | none |
 | `POST /ui/settings/ai-test` | none; sends one fixed sample to the running AI provider and flashes the result |
 | `POST /ui/settings/config` | dotted config keys such as `day_end`, `ollama.url`; checkboxes send a hidden `false` first. Unknown keys and `port` / `allowed_origins` are ignored |
+| `POST /ui/settings/backup` | none; writes a backup now |
+| `POST /ui/settings/open-data` | none; desktop-hosted servers only, opens the data folder |
+| `POST /ui/update/check` | none; asks GitHub for the latest release |
+| `POST /ui/update/apply` | none; desktop-hosted servers only, installs the pending update ([install-update.md](install-update.md)) |
 
 All UI responses carry `Content-Security-Policy: default-src 'self'; frame-ancestors 'none'; form-action 'self'`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: no-referrer` and `X-Frame-Options: DENY`. The UI is not a stable API: use the JSON routes above for scripts.

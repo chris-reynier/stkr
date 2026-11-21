@@ -14,7 +14,7 @@ Assets, per platform (`<version>` is the tag without `v`; `<os>` is `windows`, `
 | `stkr_<version>_windows_<arch>_setup.exe` (windows only) | per-user installer, see below |
 | `checksums.txt` | one line per archive and per setup file: `<sha256 hex>  <asset name>` |
 
-The updater picks the archive by exact name, reads the checksum for that name from `checksums.txt`, compares it with the SHA-256 of the downloaded file and only then extracts the first regular file named `stkr` or `stkr.exe`. A `*_setup.exe` is never chosen as the archive. Downloads must use https (plain http is accepted for loopback only).
+The updater picks the archive by exact name, reads the checksum for that name from `checksums.txt`, compares it with the SHA-256 of the downloaded file and only then extracts the STKR programs (`stkr`/`stkr.exe` and, on Windows, `stkrw.exe`). How they are installed, and the setup path for copies installed by the setup, are in [install-update.md](install-update.md). A `*_setup.exe` is never chosen as the archive. Downloads must use https (plain http is accepted for loopback only).
 
 ## Windows setup (`*_setup.exe`)
 

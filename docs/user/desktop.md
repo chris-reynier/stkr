@@ -7,7 +7,7 @@
 - The icon shows what is running. Grey: nothing runs. Blue (project), purple (mode) or green (personal) with a white dot: a context runs. Amber: the current block is idle-suspect (longer than `idle_gap_minutes`, counts 0 until you confirm it). A red badge: your close of the day is due.
 - The tooltip shows the context and the time on it, for example `STKR - Acme portal 1h12`.
 - Left-click opens the **panel**: a small window with the everyday buttons that stays above all other windows, also maximized ones. Right-click opens the menu with the daily actions. "Open STKR" opens the full interface in a normal window.
-- It shows a notification when the close of the day becomes due, when an update is found and when an agent starts waiting for your approval. Each one is shown once, not at every refresh.
+- It shows a notification when the close of the day becomes due, when an update is found and when an agent starts waiting for your approval. Each one is shown once, not at every refresh. An update is installed from the menu or the web UI with one click ([Update](update.md)).
 
 `stkrw.exe` runs the same STKR server as `stkr serve`, inside its own process, so Stream Deck keys, the web UI and `stkr` commands keep working while only the icon runs. If `stkr serve` is already running, the app uses that server instead ("attach mode") and does not start a second one. All menu actions go through the local server, exactly like a Stream Deck key or a `curl` call.
 
@@ -73,6 +73,8 @@ The menu:
 | Open | Today, Week, Agents, Ideas, Links or Settings in the app window. |
 | Keep panel on top | Checked while the panel stays above other windows. Click to turn it off or on. |
 | Data folder, Logs folder | Open the folder in Explorer. |
+| Check for updates | Asks GitHub for the latest release and shows the answer in a notification. |
+| Install update vX... | Only shown when an update exists. Asks for confirmation, downloads and verifies the update, stops STKR, installs it and starts it again. See [Update](update.md). |
 | About STKR | Shows the version, the port and whether the app runs the server or uses `stkr serve`. |
 | Quit | Removes the icon and stops the server it runs (within 5 seconds). A `stkr serve` it attached to keeps running. |
 
@@ -86,9 +88,17 @@ stkrw.exe -home D:\stkr-test
 
 or set `STKR_HOME`, as for `stkr`. Each data folder can have its own icon.
 
+### Settings from the app
+
+Open **Settings** from the menu or the panel. When the app runs the server, Settings has a **Desktop app** section: notifications, refresh interval, keep the panel on top, panel hotkey, show the panel at start, and **Start STKR when I sign in**. It also has **Back up now** and **Open data folder** (the data folder opens in Explorer), and the **Updates** box with **Check now** and **Install update**.
+
+Saving Settings applies the changes at once: the app restarts its own server (a second or two) on the same port, the page reloads itself, and the hotkey, refresh interval, notifications and pin take their new values. Nothing needs a terminal or a restart of the app. If the app is attached to a `stkr serve` you started, Settings shows no Desktop section and the saved changes apply when you restart `stkr serve`.
+
 ### Start it at sign-in
 
-The installer has an option for this ("Start STKR when I sign in to Windows", on by default); it adds a sign-in entry for `stkrw.exe`. To turn it off later, open Task Manager, Startup apps, and disable STKR. If you installed from the zip, press Win+R, type `shell:startup`, and put a shortcut to `stkrw.exe` in that folder. Do not also autostart `stkr serve` for the same data folder; the app runs the server itself.
+Tick **Start STKR when I sign in** in Settings, Desktop app (or untick it). STKR adds or removes the sign-in entry `STKR` under `HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Run`, the same entry the installer writes: `"<folder>\stkrw.exe" --autostart`. The box shows what Windows has, so it is right even if you changed the entry in Task Manager, Startup apps. The installer's option ("Start STKR when I sign in to Windows", on by default) sets the same entry. If you installed from the zip, you can use the box too, or press Win+R, type `shell:startup`, and put a shortcut to `stkrw.exe` in that folder. Do not also autostart `stkr serve` for the same data folder; the app runs the server itself.
+
+The setting `desktop.autostart` only remembers the last choice made in Settings. Changing it with `stkr config set` does not touch Windows; use the box in Settings.
 
 ### Keep the icon visible
 
@@ -103,9 +113,10 @@ Windows hides new icons in the overflow area (the `^` arrow). To keep the STKR i
 | `desktop.panel_on_top` | `true` | Keep the panel above other windows (the pin). |
 | `desktop.hotkey` | `Ctrl+Alt+Space` | Global key that shows or hides the panel. Empty turns it off. |
 | `desktop.open_panel_on_start` | `false` | Show the panel when the app starts. |
+| `desktop.autostart` | `false` | Remembers the "Start STKR when I sign in" choice from Settings (see above). Windows decides; the box in Settings shows the real state. |
 | `port` | `7878` | The port the app looks for a running server on, and the port it runs its own server on. |
 
-Change them in Settings or with `stkr config set desktop.poll_seconds 10`, then quit and start the app again. The pin is the exception: the pin button and the tray menu apply it at once and save it.
+Change them in Settings: they apply at once. With `stkr config set desktop.poll_seconds 10` the app picks the change up the next time Settings is saved or the app starts. The pin button and the tray menu apply the pin at once and save it.
 
 The app also keeps the position of its windows in `desktop\window.json` in the data folder. It is not configuration; delete the file to reset the positions.
 
@@ -125,3 +136,5 @@ The app writes its own log to `logs\desktop.log` in the data folder; the server 
 - **The panel opened off screen or is too small.** Hide and show it again: it is moved back onto a screen. Or delete `desktop\window.json` to reset its place and size.
 - **Notifications do not appear.** Check `desktop.notifications`, and Windows Settings > System > Notifications (Focus and Do not disturb also hide them).
 - **I am on Linux or macOS.** The desktop app is Windows only. `stkrw` prints "the desktop app is Windows only, use `stkr serve`" and exits with code 2. Use `stkr serve` and the web UI.
+- **The update did not install.** The notification names the reason. STKR keeps running the old version. See [Update](update.md) for the details, including what to do when the app is attached to `stkr serve`.
+- **After saving Settings the page is blank for a moment.** The app restarts its server to apply the settings; the page reloads itself when the server answers again. If it does not, reload the page.
