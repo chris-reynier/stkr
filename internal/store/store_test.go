@@ -493,6 +493,28 @@ func TestBackup(t *testing.T) {
 	}
 }
 
+// A backup appears under its final name only when complete: no temp file is
+// left behind, and a stale one from a crash is replaced.
+func TestBackupIsAtomic(t *testing.T) {
+	ctx := context.Background()
+	s, backups := open(t)
+	dst := filepath.Join(backups, "c.db")
+	if err := os.WriteFile(dst+".tmp", []byte("half written"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.Backup(ctx, dst); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(dst + ".tmp"); !os.IsNotExist(err) {
+		t.Fatalf("temp file left behind: %v", err)
+	}
+	b, err := Open(ctx, dst)
+	if err != nil {
+		t.Fatalf("backup is not a database: %v", err)
+	}
+	b.Close()
+}
+
 func TestOpenFails(t *testing.T) {
 	if _, err := Open(context.Background(), filepath.Join(t.TempDir(), "missing", "dir", "x.db")); err == nil {
 		t.Fatal("want error for missing directory")

@@ -89,16 +89,41 @@ func (s *Store) InTx(ctx context.Context, fn func(tx *Store) error) error {
 }
 
 // Backup writes a consistent copy of the database to dst using VACUUM INTO.
-// dst must not exist.
+// dst must not exist. The copy is written to dst+".tmp", synced and renamed,
+// so a crash never leaves a half-written file under the final name.
 func (s *Store) Backup(ctx context.Context, dst string) error {
 	if _, err := os.Stat(dst); err == nil {
 		return domain.New(domain.ErrConflict, "backup file already exists: "+dst)
 	}
-	if _, err := s.db.ExecContext(ctx, `VACUUM INTO ?`, dst); err != nil {
+	tmp := dst + ".tmp"
+	_ = os.Remove(tmp) // left over from an earlier crash
+	if _, err := s.db.ExecContext(ctx, `VACUUM INTO ?`, tmp); err != nil {
+		_ = os.Remove(tmp)
 		return fmt.Errorf("backup to %s: %w", dst, err)
 	}
-	_ = os.Chmod(dst, 0o600)
+	if err := syncFile(tmp); err != nil {
+		_ = os.Remove(tmp)
+		return fmt.Errorf("sync backup: %w", err)
+	}
+	_ = os.Chmod(tmp, 0o600)
+	if err := os.Rename(tmp, dst); err != nil {
+		_ = os.Remove(tmp)
+		return fmt.Errorf("finish backup %s: %w", dst, err)
+	}
 	return nil
+}
+
+// syncFile flushes a file to disk.
+func syncFile(path string) error {
+	f, err := os.OpenFile(path, os.O_RDWR, 0) //nolint:gosec // path is the temp file this package just created
+	if err != nil {
+		return err
+	}
+	if err := f.Sync(); err != nil {
+		_ = f.Close()
+		return err
+	}
+	return f.Close()
 }
 
 // Tables returns the names of the user tables, sorted.
