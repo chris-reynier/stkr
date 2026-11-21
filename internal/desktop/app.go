@@ -181,6 +181,7 @@ func (a *App) Run() error {
 
 // Ready starts connecting and polling.
 func (a *App) Ready() {
+	a.log.Info("tray ready")
 	a.opts.Tray.SetIcon(IconFor(nil), "STKR - starting")
 	a.setupHotkey()
 	a.wg.Add(1)
@@ -573,6 +574,10 @@ const pagePanel = "/ui/panel"
 // missingRuntimeText is the notification shown once when WebView2 is absent.
 const missingRuntimeText = "Microsoft Edge WebView2 is not installed, so the panel cannot open. STKR opens its pages in your browser instead. Install the WebView2 Runtime from Microsoft to use the panel."
 
+// windowFailedText is shown once when WebView2 is installed but a window still
+// could not be created (for example the browser data folder is not usable).
+const windowFailedText = "The STKR window could not be opened, so STKR opens its pages in your browser instead. Restart STKR to try again; if it keeps happening, see Troubleshooting in the desktop app guide."
+
 // windowsUsable reports whether the windows can be shown. The first call
 // asks the windows whether WebView2 exists and notifies once if it does not.
 func (a *App) windowsUsable() bool {
@@ -588,21 +593,21 @@ func (a *App) windowsUsable() bool {
 		return true
 	}
 	if err := a.win.Available(); err != nil {
-		a.markBroken(err)
+		a.markBroken(err, missingRuntimeText)
 		return false
 	}
 	return true
 }
 
 // markBroken switches every window action to the browser and says so once.
-func (a *App) markBroken(err error) {
+func (a *App) markBroken(err error, text string) {
 	a.mu.Lock()
 	first := !a.winBroken
 	a.winBroken = true
 	a.mu.Unlock()
 	if first {
 		a.log.Warn("windows unavailable, using the browser", "err_kind", errKind(err))
-		a.notify(Notice{Title: "STKR", Text: missingRuntimeText, Error: true})
+		a.notify(Notice{Title: "STKR", Text: text, Error: true})
 	}
 }
 
@@ -610,7 +615,7 @@ func (a *App) markBroken(err error) {
 // WebView2 reported itself as present. The page the user asked for opens in
 // the browser instead.
 func (a *App) windowsFailed(err error) {
-	a.markBroken(err)
+	a.markBroken(err, windowFailedText)
 	a.mu.Lock()
 	c := a.client
 	a.mu.Unlock()
