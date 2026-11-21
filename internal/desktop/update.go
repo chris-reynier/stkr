@@ -311,3 +311,14 @@ func (a *App) applySettings(s Settings, currentPort int) {
 func updatedText(version string) string {
 	return "STKR updated to " + strings.TrimPrefix(version, "v") + "."
 }
+
+// ServerPort is the port of the server the app is connected to (0 when it is
+// not connected). It is safe to call from any goroutine.
+func (a *App) ServerPort() int {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	if a.client == nil {
+		return 0
+	}
+	return a.client.Port()
+}

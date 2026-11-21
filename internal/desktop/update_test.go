@@ -354,7 +354,7 @@ func TestSettingsSavedRestartsHostedServerWithNewConfig(t *testing.T) {
 	}
 	r := startApp2(t, h, home, l, func(o *Options) { o.Port = cfg.Port; o.Reload = h.reload; o.Hotkey = "" })
 	waitFor(t, "hosted", func() bool { return r.app.Mode() == ModeHost && r.tray.lastTip() == "STKR - Nothing running" })
-	port := r.app.client.Port()
+	port := r.app.ServerPort()
 	if port != cfg.Port {
 		t.Fatalf("port = %d, want %d", port, cfg.Port)
 	}
@@ -377,7 +377,7 @@ func TestSettingsSavedRestartsHostedServerWithNewConfig(t *testing.T) {
 	waitFor(t, "restart", func() bool { return l.all() == "start,shutdown,start" })
 	waitFor(t, "connected again", func() bool { return r.app.Mode() == ModeHost && r.tray.lastTip() == "STKR - Nothing running" })
 
-	if got := r.app.client.Port(); got != port {
+	if got := r.app.ServerPort(); got != port {
 		t.Errorf("port after the restart = %d, want the same %d", got, port)
 	}
 	h.mu.Lock()
@@ -417,7 +417,7 @@ func TestSettingsSavedPortChange(t *testing.T) {
 		t.Fatal(err)
 	}
 	r.app.SettingsSaved()
-	waitFor(t, "new port", func() bool { return r.app.Mode() == ModeHost && r.app.client.Port() == newPort })
+	waitFor(t, "new port", func() bool { return r.app.Mode() == ModeHost && r.app.ServerPort() == newPort })
 	r.quit(t)
 }
 
