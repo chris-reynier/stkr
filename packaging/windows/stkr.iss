@@ -153,21 +153,36 @@ begin
 end;
 
 // PathWithout returns Path without the entries equal to Dir; every other
-// entry is kept exactly as it was.
+// entry, including empty ones, is kept exactly as it was, so removing what
+// AddToUserPath added gives back the original value.
 function PathWithout(const Path, Dir: String): String;
 var
   Rest, Item: String;
+  P: Integer;
+  More, First: Boolean;
 begin
   Result := '';
   Rest := Path;
-  while Rest <> '' do
+  More := True;
+  First := True;
+  while More do
   begin
-    Item := NextItem(Rest);
-    if (Item <> '') and not SameDir(Item, Dir) then
+    P := Pos(';', Rest);
+    if P = 0 then
     begin
-      if Result <> '' then
+      Item := Rest;
+      More := False;
+    end else
+    begin
+      Item := Copy(Rest, 1, P - 1);
+      Rest := Copy(Rest, P + 1, Length(Rest));
+    end;
+    if (Item = '') or not SameDir(Item, Dir) then
+    begin
+      if not First then
         Result := Result + ';';
       Result := Result + Item;
+      First := False;
     end;
   end;
 end;
@@ -181,10 +196,14 @@ begin
     Cur := '';
   if PathContains(Cur, Dir) then
     Exit;
-  if (Cur <> '') and (Cur[Length(Cur)] <> ';') then
-    Cur := Cur + ';';
+  if Cur = '' then
+    Cur := Dir
+  else if Cur[Length(Cur)] = ';' then
+    Cur := Cur + Dir + ';'  // keeps a trailing ';' so uninstall restores the value
+  else
+    Cur := Cur + ';' + Dir;
   // Written as REG_EXPAND_SZ so %VARIABLES% already in the value keep working.
-  RegWriteExpandStringValue(HKCU, EnvKey, 'Path', Cur + Dir);
+  RegWriteExpandStringValue(HKCU, EnvKey, 'Path', Cur);
 end;
 
 procedure RemoveFromUserPath;
