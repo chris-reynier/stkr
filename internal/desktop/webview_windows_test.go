@@ -48,6 +48,7 @@ func TestEmbedFailureDoesNotEndTheProcess(t *testing.T) {
 		defer procDestroyWindow.Call(hwnd) //nolint:errcheck // test cleanup
 		c := edge.NewChromium()
 		c.DataPath = file
+		c.EmbedTimeout = 10 * time.Second
 		ok := c.Embed(hwnd)
 		done <- result{ok: ok, err: c.Err()}
 	}()
@@ -59,7 +60,8 @@ func TestEmbedFailureDoesNotEndTheProcess(t *testing.T) {
 		if r.err == nil {
 			t.Fatal("Embed failed without a reason")
 		}
-	case <-time.After(30 * time.Second):
+		t.Logf("Embed failed as expected: %v", r.err)
+	case <-time.After(60 * time.Second):
 		t.Fatal("Embed did not return")
 	}
 }

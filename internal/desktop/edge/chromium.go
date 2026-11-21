@@ -9,10 +9,17 @@ import (
 	"os"
 	"path/filepath"
 	"sync/atomic"
+	"time"
 	"unsafe"
 
 	"github.com/chris-reynier/stkr/internal/desktop/edge/internal/w32"
 	"golang.org/x/sys/windows"
+)
+
+var (
+	user32        = windows.NewLazySystemDLL("user32.dll")
+	procSetTimer  = user32.NewProc("SetTimer")
+	procKillTimer = user32.NewProc("KillTimer")
 )
 
 type Chromium struct {
@@ -39,6 +46,8 @@ type Chromium struct {
 
 	// Settings
 	DataPath string
+	// EmbedTimeout bounds how long Embed waits for WebView2 (default 30 s; STKR).
+	EmbedTimeout time.Duration
 
 	// permissions
 	permissions      map[CoreWebView2PermissionKind]CoreWebView2PermissionState
@@ -108,9 +117,24 @@ func (e *Chromium) Embed(hwnd uintptr) bool {
 		return false
 	}
 	var msg w32.Msg
+	// STKR: bound the wait. A WebView2 that never answers must not freeze the
+	// window thread for ever; a thread timer wakes the loop to check the clock.
+	timeout := e.EmbedTimeout
+	if timeout <= 0 {
+		timeout = 30 * time.Second
+	}
+	deadline := time.Now().Add(timeout)
+	timer, _, _ := procSetTimer.Call(0, 0, 250, 0)
+	if timer != 0 {
+		defer procKillTimer.Call(0, timer) //nolint:errcheck
+	}
 	for {
 		if atomic.LoadUintptr(&e.inited) != 0 {
 			break
+		}
+		if time.Now().After(deadline) {
+			e.initErr = fmt.Errorf("WebView2 did not start within %v", timeout)
+			return false
 		}
 		r, _, _ := w32.User32GetMessageW.Call(
 			uintptr(unsafe.Pointer(&msg)),
