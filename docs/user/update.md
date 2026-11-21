@@ -26,6 +26,10 @@ The tray menu also has **Check for updates**, which asks GitHub right away and s
 
 Updating from the app works when the app runs the server itself. If the app is attached to a `stkr serve` that you started (the tray says so under About), STKR does not control that server: run `stkr update` in a terminal and restart `stkr serve`. In the same way, under a plain `stkr serve` the web page has no Install button; it tells you to run `stkr update` and restart `stkr serve`.
 
+### From v0.1.0
+
+v0.1.0 has no desktop app, and its `stkr update` replaces only `stkr.exe`. To get the desktop app, download the setup file of the current release (`stkr_<version>_windows_amd64_setup.exe`, or `arm64`) from the releases page and run it once. It installs `stkr.exe` and `stkrw.exe` in `%LOCALAPPDATA%ProgramsSTKR`, adds the Start menu entry and keeps your data (the data folder is the same). If you want STKR to start when you sign in, leave that task ticked. If an older `stkr.exe` from the v0.1.0 zip is still on your PATH, remove its folder from the PATH so that `where stkr` shows the new one. From then on, updates are one click from the icon or Settings. If you unpacked the zip instead of using setup, unpack the new zip over the same folder; the in-app update only adds `stkrw.exe` to a folder that setup created.
+
 ### From the terminal
 
 ```
