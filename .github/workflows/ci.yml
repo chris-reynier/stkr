@@ -134,3 +134,28 @@ jobs:
           name: setup-log
           path: ${{ runner.temp }}/stkr-setup.log
           if-no-files-found: ignore
+
+  desktop-nfr:
+    name: desktop memory and start time
+    runs-on: windows-latest
+    env:
+      CGO_ENABLED: "0"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: Build stkr and stkrw
+        run: |
+          go build -ldflags "-s -w" -o "$RUNNER_TEMP/stkr.exe" ./cmd/stkr
+          go build -ldflags "-s -w -H windowsgui" -o "$RUNNER_TEMP/stkrw.exe" ./cmd/stkrw
+        shell: bash
+      - name: Panel closed (headless test mode; warns above the targets, fails above twice)
+        shell: pwsh
+        run: |
+          ./packaging/windows/measure-desktop.ps1 -Stkr "$env:RUNNER_TEMP/stkr.exe" -Stkrw "$env:RUNNER_TEMP/stkrw.exe" -IdleSeconds 20
+      - name: Panel open (real window, informational only)
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          ./packaging/windows/measure-desktop.ps1 -Stkr "$env:RUNNER_TEMP/stkr.exe" -Stkrw "$env:RUNNER_TEMP/stkrw.exe" -IdleSeconds 20 -Panel
