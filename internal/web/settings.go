@@ -81,6 +81,10 @@ func specs() []section {
 			{Key: "ollama.url", Label: "URL", Type: "text"},
 			{Key: "ollama.model", Label: "Model", Type: "text"},
 		}},
+		{Title: "Desktop app (Windows)", Fields: []field{
+			{Key: "desktop.notifications", Label: "Show notifications", Type: "bool", Help: "Close reminder, update found, agent waiting."},
+			{Key: "desktop.poll_seconds", Label: "Refresh every (seconds)", Type: "number", Help: "2 to 60."},
+		}},
 		{Title: "MCP", Fields: []field{
 			{Key: "mcp.enabled", Label: "Enabled", Type: "bool"},
 		}},

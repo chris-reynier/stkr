@@ -74,6 +74,10 @@ Response `200` (`NowStatus`):
 
 When not tracking: `{"tracking": false, "elapsed_seconds": 0, "idle_suspect": false, "today_counted_seconds": 0}`.
 
+### `GET /api/status`
+
+Compact state for the desktop tray and status widgets: current context, switch list, `close_due`, cached update, `agents_waiting`, `ideas_new`, `version` and `hosted_by` (`serve` or `desktop`). Full schema: [status-api.md](status-api.md).
+
 ### `GET /api/contexts`
 
 Query parameters: `parked=1` includes parked (inactive) contexts; `kind=project|mode|personal|system` filters by kind.

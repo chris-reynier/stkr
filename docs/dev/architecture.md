@@ -1,6 +1,6 @@
 # Architecture
 
-STKR is a single Go binary: a CLI, a localhost HTTP API with a server-rendered UI, an MCP server over stdio, and Stream Deck support through HTTP. Data is stored in SQLite.
+STKR is a Go module with two programs: `stkr`, a CLI with a localhost HTTP API and server-rendered UI, an MCP server over stdio and Stream Deck support through HTTP; and `stkrw` (Windows), a notification-area app that runs the same server. Data is stored in SQLite.
 
 ## Layers
 
@@ -10,6 +10,9 @@ cmd/stkr -> internal/cli --+
             internal/web ----+          |
             internal/mcpserver          +--> internal/timeline (pure time rules)
                                         +--> internal/ai, capture, daily, keyimg, platform
+cmd/stkrw -> internal/desktop --HTTP--> 127.0.0.1:<port> (attach) or internal/server.Start (host)
+internal/server    listener, API + web routes, background jobs; used by `stkr serve` and stkrw
+internal/desktop   tray app: attach/host, status polling, menu model, notifications; Win32 in tray_windows.go
 internal/app       wiring: config -> dependencies -> service; background workers
 internal/config    YAML load/save, defaults, validation, redaction
 internal/clock     Clock interface, Real, Fake
@@ -34,7 +37,8 @@ Rules:
 
 ## Processes
 
-- `stkr serve` runs the HTTP API and UI plus background workers.
+- `stkr serve` runs the HTTP API and UI plus background workers (`internal/server.Start`).
+- `stkrw` (Windows) probes `/healthz` on the configured port: if `stkr serve` answers it attaches, otherwise it runs `internal/server.Start` itself. Every tray action is an HTTP call to that server. One instance per data folder (named mutex).
 - `stkr mcp` runs the MCP server on stdio and opens the database directly.
 - Other commands open the database directly and exit. Commands that need state held by `serve` call `http://127.0.0.1:<port>` and exit with code 2 and a hint if it is not running.
 - SQLite uses WAL mode, a 5 second busy timeout and foreign keys.

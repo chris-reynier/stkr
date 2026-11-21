@@ -11,6 +11,7 @@ Status: 0.x, early but complete for daily use. Windows first, with Linux and mac
 | Switch contexts with one command or key; time blocks, idle and gap detection, day and week reports | [Time tracking](docs/user/time-tracking.md), [Contexts](docs/user/contexts.md) |
 | Local web UI: Today timeline with editing, Week totals, Tempo CSV export, Settings | [Web UI](docs/user/web-ui.md) |
 | Local HTTP API and Stream Deck keys with live key images (listens on 127.0.0.1 only) | [Server](docs/user/server.md), [Stream Deck](docs/user/stream-deck.md) |
+| Windows desktop app (`stkrw.exe`): notification-area icon showing what runs, menu for switch, stop, capture and the daily loop | [Desktop app](docs/user/desktop.md) |
 | Agents hub: see all coding-agent windows and jump to the one that needs you | [Agents](docs/user/agents.md) |
 | Daily loop: Start Day and Close Day prompts, import of the AI answer, project log files, close reminder | [Daily loop](docs/user/daily-loop.md) |
 | Capture: text and voice ideas, phone inbox, meeting actions and decisions, bookmarks | [Capture](docs/user/capture.md), [Bookmarks](docs/user/bookmarks.md) |
@@ -24,7 +25,7 @@ Everything works without AI, without a Stream Deck and without a network.
 
 Download the archive for your system from the [releases page](https://github.com/chris-reynier/stkr/releases), unpack it and put `stkr` on your PATH. Details, including the Windows SmartScreen note, are in [Install](docs/user/install.md). Update later with `stkr update` ([Update](docs/user/update.md)).
 
-To build from source you need Go 1.27 or newer: `go build -o stkr ./cmd/stkr`.
+To build from source you need Go 1.27 or newer: `go build -o stkr ./cmd/stkr`. The Windows desktop app: `go build -ldflags "-H windowsgui" -o stkrw.exe ./cmd/stkrw`.
 
 ## Quick start (5 minutes)
 

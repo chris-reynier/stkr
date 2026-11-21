@@ -42,6 +42,7 @@ type Config struct {
 	Launch               Launch    `yaml:"launch"`
 	Update               Update    `yaml:"update"`
 	Bookmarks            Bookmarks `yaml:"bookmarks"`
+	Desktop              Desktop   `yaml:"desktop"`
 	AllowedOrigins       []string  `yaml:"allowed_origins"`
 }
 
@@ -96,6 +97,15 @@ type Bookmarks struct {
 	FetchTitle bool `yaml:"fetch_title"`
 }
 
+// Desktop configures the Windows desktop app (stkrw).
+type Desktop struct {
+	// Notifications shows tray notifications when the close becomes due, an
+	// update is found or an agent starts waiting.
+	Notifications bool `yaml:"notifications"`
+	// PollSeconds is how often the tray refreshes its status (2..60).
+	PollSeconds int `yaml:"poll_seconds"`
+}
+
 // Update configures the update check.
 type Update struct {
 	Check         bool   `yaml:"check"`
@@ -135,6 +145,7 @@ func Default() *Config {
 		Launch:    Launch{Command: "code", Args: []string{"{path}"}},
 		Update:    Update{Check: true, Channel: "stable", IntervalHours: 24},
 		Bookmarks: Bookmarks{FetchTitle: true},
+		Desktop:   Desktop{Notifications: true, PollSeconds: 5},
 	}
 }
 
@@ -181,6 +192,9 @@ func (c *Config) Validate() error {
 	}
 	if c.Update.Channel != "stable" && c.Update.Channel != "beta" {
 		bad("update.channel must be stable or beta (got %q)", c.Update.Channel)
+	}
+	if c.Desktop.PollSeconds < 2 || c.Desktop.PollSeconds > 60 {
+		bad("desktop.poll_seconds must be between 2 and 60 (got %d)", c.Desktop.PollSeconds)
 	}
 	if c.Update.IntervalHours < 1 {
 		bad("update.interval_hours must be at least 1")

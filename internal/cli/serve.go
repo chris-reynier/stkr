@@ -1,22 +1,17 @@
 package cli
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"log/slog"
-	"net"
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
 
 	"github.com/spf13/cobra"
 
-	"github.com/chris-reynier/stkr/internal/app"
 	"github.com/chris-reynier/stkr/internal/config"
-	"github.com/chris-reynier/stkr/internal/httpapi"
-	"github.com/chris-reynier/stkr/internal/web"
+	"github.com/chris-reynier/stkr/internal/server"
 )
 
 func newServeCmd(opts *options) *cobra.Command {
@@ -35,61 +30,26 @@ func newServeCmd(opts *options) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			cfg := svc.Config()
 			if cmd.Flags().Changed("port") {
 				if port < 0 || port > 65535 {
 					return usageError{fmt.Errorf("invalid --port %d", port)}
 				}
 			} else {
-				port = cfg.Port
+				port = svc.Config().Port
 			}
-			ln, err := httpapi.Listen(port)
-			if err != nil {
-				return usageError{fmt.Errorf("cannot listen on 127.0.0.1:%d (is another stkr serve running? choose another port with --port): %w", port, err)}
-			}
-			realPort := ln.Addr().(*net.TCPAddr).Port
-
 			ctx, stop := signal.NotifyContext(cmd.Context(), os.Interrupt, syscall.SIGTERM)
 			defer stop()
-
-			lg := slog.Default()
-			runner := app.NewRunner(lg)
-			runner.Add("daily-backup", time.Hour, func(ctx context.Context) error {
-				_, _, err := svc.DailyBackup(ctx)
-				return err
-			})
-			runner.Add("agent-sweeper", time.Minute, func(ctx context.Context) error {
-				_, err := svc.SweepAgents(ctx)
-				return err
-			})
-			runner.Add("close-reminder", time.Minute, svc.ReminderTick)
-			runner.Add("phone-inbox", 30*time.Second, func(ctx context.Context) error {
-				_, err := svc.ScanInbox(ctx)
-				return err
-			})
-			if cfg.Update.Check {
-				runner.Add("update-check", time.Duration(cfg.Update.IntervalHours)*time.Hour, svc.UpdateTick)
+			h, err := server.Start(ctx, svc, server.Options{Port: port, Logger: slog.Default(), HostedBy: server.HostedByServe})
+			var le *server.ListenError
+			if errors.As(err, &le) {
+				return usageError{fmt.Errorf("cannot listen on 127.0.0.1:%d (is another stkr serve running? choose another port with --port): %w", port, le.Err)}
 			}
-			if svc.AIActive() {
-				runner.Add("ai-batch", time.Duration(cfg.AI.BatchMinutes)*time.Minute, svc.AIBatchTick)
-			} else if w := svc.AIStatusWarning(); w != "" {
-				lg.Warn("AI provider not active", "reason", w)
-			}
-			runner.Start(ctx)
-
-			srv := httpapi.New(svc, httpapi.Options{Port: realPort, AllowedOrigins: cfg.AllowedOrigins, Logger: lg})
-			if _, err := web.Mount(srv.Mux(), svc, web.Options{Logger: lg}); err != nil {
+			if err != nil {
 				return err
 			}
-			fmt.Fprintf(cmd.OutOrStdout(), "stkr serving on http://127.0.0.1:%d\n", realPort)
-			lg.Info("serve started", "port", realPort)
-			err = srv.Serve(ctx, ln)
-			stop()
-			runner.Wait()
-			if err != nil && !errors.Is(err, context.Canceled) {
-				return err
-			}
-			return nil
+			fmt.Fprintf(cmd.OutOrStdout(), "stkr serving on %s\n", h.URL())
+			<-h.Done()
+			return h.Err()
 		},
 	}
 	cmd.Flags().IntVar(&port, "port", config.Default().Port, "port to listen on (default from config)")

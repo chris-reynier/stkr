@@ -21,6 +21,7 @@ type Server struct {
 	log            *slog.Logger
 	port           int
 	allowedOrigins []string
+	hostedBy       string
 	mux            *http.ServeMux
 }
 
@@ -32,6 +33,8 @@ type Options struct {
 	// AllowedOrigins are extra origins accepted on state-changing requests.
 	AllowedOrigins []string
 	Logger         *slog.Logger
+	// HostedBy is reported by GET /api/status: "serve" (default) or "desktop".
+	HostedBy string
 }
 
 // New builds a Server.
@@ -40,7 +43,11 @@ func New(svc *service.Service, opts Options) *Server {
 	if lg == nil {
 		lg = slog.Default()
 	}
-	s := &Server{svc: svc, log: lg, port: opts.Port, allowedOrigins: opts.AllowedOrigins, mux: http.NewServeMux()}
+	hostedBy := opts.HostedBy
+	if hostedBy == "" {
+		hostedBy = "serve"
+	}
+	s := &Server{svc: svc, log: lg, port: opts.Port, allowedOrigins: opts.AllowedOrigins, hostedBy: hostedBy, mux: http.NewServeMux()}
 	s.routes()
 	return s
 }
@@ -65,6 +72,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("POST /api/switch/{ctx}", s.handleSwitch)
 	s.mux.HandleFunc("POST /api/stop", s.handleStop)
 	s.mux.HandleFunc("GET /api/now", s.handleNow)
+	s.mux.HandleFunc("GET /api/status", s.handleStatus)
 	s.mux.HandleFunc("GET /api/contexts", s.handleContexts)
 	s.mux.HandleFunc("GET /img/now.png", s.handleNowImage)
 	s.mux.HandleFunc("GET /api/week/{week}/tempo.csv", s.handleTempoCSV)
