@@ -218,11 +218,16 @@ func (s *Service) record(ctx context.Context, ctxID string, src domain.EventSour
 // Now returns the current context (the last one switched to, unless that was
 // off) and today's counted time.
 func (s *Service) Now(ctx context.Context) (domain.NowStatus, error) {
-	now := s.clk.Now()
 	day, err := s.Day(ctx, "")
 	if err != nil {
 		return domain.NowStatus{}, err
 	}
+	return s.nowFrom(ctx, day)
+}
+
+// nowFrom is Now with today's report already computed.
+func (s *Service) nowFrom(ctx context.Context, day domain.DayReport) (domain.NowStatus, error) {
+	now := s.clk.Now()
 	st := domain.NowStatus{Today: day.Counted}
 	last, err := s.st.LastEvent(ctx, now)
 	if errors.Is(err, domain.ErrNotFound) {

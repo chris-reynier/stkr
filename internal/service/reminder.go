@@ -28,13 +28,18 @@ type CloseState struct {
 
 // CloseState computes whether the close of today is due (initial.md 12.5).
 func (s *Service) CloseState(ctx context.Context) (CloseState, error) {
-	now := s.clk.Now().In(s.loc)
-	today := timeline.Midnight(now, s.loc)
-	rt, err := timeline.ParseTimeOfDay(s.cfg.CloseReminder)
+	rep, err := s.Day(ctx, "today")
 	if err != nil {
 		return CloseState{}, err
 	}
-	rep, err := s.Day(ctx, "today")
+	return s.closeStateFrom(ctx, rep)
+}
+
+// closeStateFrom is CloseState with today's report already computed.
+func (s *Service) closeStateFrom(ctx context.Context, rep domain.DayReport) (CloseState, error) {
+	now := s.clk.Now().In(s.loc)
+	today := timeline.Midnight(now, s.loc)
+	rt, err := timeline.ParseTimeOfDay(s.cfg.CloseReminder)
 	if err != nil {
 		return CloseState{}, err
 	}
