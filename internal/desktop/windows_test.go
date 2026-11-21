@@ -53,3 +53,53 @@ func TestParseBridge(t *testing.T) {
 		})
 	}
 }
+
+func TestOriginOf(t *testing.T) {
+	cases := map[string]string{
+		"http://127.0.0.1:7878/ui/panel":   "http://127.0.0.1:7878",
+		"HTTP://127.0.0.1:7878":            "http://127.0.0.1:7878",
+		"https://Example.com/x?y=1":        "https://example.com",
+		"http://user:pw@127.0.0.1:1/":      "",
+		"file:///c:/windows/win.ini":       "",
+		"javascript:alert(1)":              "",
+		"data:text/html,<b>x":              "",
+		"":                                 "",
+		"/ui/today":                        "",
+		"http://":                          "",
+		"http://127.0.0.1:7878@evil.test/": "",
+	}
+	for in, want := range cases {
+		if got := OriginOf(in); got != want {
+			t.Errorf("OriginOf(%q) = %q, want %q", in, got, want)
+		}
+	}
+}
+
+func TestNavigationAllowed(t *testing.T) {
+	const origin = "http://127.0.0.1:7878"
+	cases := []struct {
+		origin, target string
+		want           bool
+	}{
+		{origin, "http://127.0.0.1:7878/ui/week", true},
+		{origin, "http://127.0.0.1:7878", true},
+		{origin, "about:blank", true},
+		{"", "about:blank", true},
+		{"", "http://127.0.0.1:7878/ui/week", false},
+		{origin, "http://127.0.0.1:7879/ui/week", false},
+		{origin, "https://127.0.0.1:7878/ui/week", false},
+		{origin, "http://localhost:7878/ui/week", false},
+		{origin, "https://example.com/", false},
+		{origin, "http://127.0.0.1:7878@evil.test/", false},
+		{origin, "file:///c:/windows/win.ini", false},
+		{origin, "javascript:alert(1)", false},
+		{origin, "data:text/html,<b>x</b>", false},
+		{origin, "", false},
+		{origin, "about:blank#x", false},
+	}
+	for _, c := range cases {
+		if got := NavigationAllowed(c.origin, c.target); got != c.want {
+			t.Errorf("NavigationAllowed(%q, %q) = %v, want %v", c.origin, c.target, got, c.want)
+		}
+	}
+}

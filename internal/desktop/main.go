@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -28,6 +29,7 @@ const UnsupportedMessage = "the desktop app is Windows only, use `stkr serve`"
 var (
 	supported       = platformSupported
 	newTray         = newPlatformTray
+	newHeadlessTray = newPlatformHeadlessTray
 	acquireInstance = platformAcquireInstance
 	signalInstance  = platformSignalInstance
 	openTarget      = platformOpen
@@ -66,6 +68,10 @@ func run(args []string, stderr io.Writer, version string) (int, *relaunch) {
 	// --autostart is the marker the installer and Settings put in the sign-in
 	// entry. It changes nothing; accepting it keeps old entries working.
 	_ = fs.Bool("autostart", false, "started when the user signed in")
+	// --headless-test is for the acceptance tests: the real single-instance and
+	// message handling and the hosted server, but no icon, no windows, no
+	// notifications, no global hotkey and nothing opened in the browser.
+	headless := fs.Bool("headless-test", false, "test mode: no icon, windows, hotkey or browser")
 	afterUpdate := fs.Bool("after-update", false, "started by an update: say so once the app is running")
 	if err := fs.Parse(args); err != nil {
 		return 2, nil
@@ -131,7 +137,13 @@ func run(args []string, stderr io.Writer, version string) (int, *relaunch) {
 	}
 	defer srvClose.Close()
 
-	tray, err := newTray(name)
+	newT := newTray
+	open, wf, confirm, hk := openTarget, newWindows, confirmBox, cfg.Desktop.Hotkey
+	if *headless {
+		newT, open, wf, confirm = newHeadlessTray, headlessOpen(lg), nil, func(string, string) bool { return false }
+		hk = ""
+	}
+	tray, err := newT(name)
 	if err != nil {
 		lg.Error("tray", "err", err)
 		fmt.Fprintln(stderr, err)
@@ -144,12 +156,12 @@ func run(args []string, stderr io.Writer, version string) (int, *relaunch) {
 		Home: home, Version: version, Port: cfg.Port,
 		Poll:          s.Poll,
 		Notifications: s.Notifications,
-		Tray:          tray, Host: host.start, Open: openTarget, Logger: lg,
-		Windows:        newWindows(home, cfg.Desktop.PanelOnTop, lg),
+		Tray:          tray, Host: host.start, Open: open, Logger: lg,
+		Windows:        windowsFor(wf, home, cfg.Desktop.PanelOnTop, lg),
 		PanelOnTop:     cfg.Desktop.PanelOnTop,
 		SavePanelOnTop: func(on bool) error { return savePanelOnTop(home, on) },
-		Hotkey:         cfg.Desktop.Hotkey, OpenPanelOnStart: cfg.Desktop.OpenPanelOnStart,
-		Updater: newUpdater(host, exe), Confirm: confirmBox, Exe: exe,
+		Hotkey:         hk, OpenPanelOnStart: cfg.Desktop.OpenPanelOnStart,
+		Updater: newUpdater(host, exe), Confirm: confirm, Exe: exe,
 		Reload: host.reload, JustUpdated: *afterUpdate,
 	})
 	host.app = a
@@ -304,4 +316,26 @@ func savePanelOnTop(home string, on bool) error {
 		return err
 	}
 	return config.Save(path, cfg)
+}
+
+// windowsFor builds the window factory, or nil when there is none (headless).
+func windowsFor(f func(string, bool, *slog.Logger) WindowsFactory, home string, onTop bool, lg *slog.Logger) WindowsFactory {
+	if f == nil {
+		return nil
+	}
+	return f(home, onTop, lg)
+}
+
+// headlessOpen replaces "open in the browser or file manager" in the test
+// mode: it only logs what would have been opened (our own pages by address,
+// anything else just as "external").
+func headlessOpen(lg *slog.Logger) func(string) error {
+	return func(target string) error {
+		if strings.HasPrefix(target, "http://127.0.0.1:") {
+			lg.Info("headless: open", "target", target)
+		} else {
+			lg.Info("headless: open", "target", "external")
+		}
+		return nil
+	}
 }

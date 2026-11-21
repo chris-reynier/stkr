@@ -247,3 +247,71 @@ func TestMainAcceptsAutostartMarker(t *testing.T) {
 		t.Fatalf("code %d", code)
 	}
 }
+
+// TestMainHeadlessMode: --headless-test swaps in the headless tray, builds no
+// windows, never opens the browser or asks for a hotkey, and still hosts the
+// server.
+func TestMainHeadlessMode(t *testing.T) {
+	home := filepath.Join(t.TempDir(), "home")
+	if err := config.EnsureHome(home); err != nil {
+		t.Fatal(err)
+	}
+	port := freePort(t)
+	cfg := config.Default()
+	cfg.Port = port
+	cfg.Update.Check = false
+	cfg.Desktop.Hotkey = "Ctrl+Alt+K"
+	if err := config.Save(config.Path(home), cfg); err != nil {
+		t.Fatal(err)
+	}
+	normal := newFakeTray()
+	headless := newFakeTray()
+	hooks(t, normal, false, nil)
+	var opened []string
+	openTarget = func(s string) error { opened = append(opened, s); return nil }
+	newHeadlessTray = func(string) (Tray, error) { return headless, nil }
+	t.Cleanup(func() { newHeadlessTray = newPlatformHeadlessTray })
+	factoryCalled := false
+	newWindows = func(string, bool, *slog.Logger) WindowsFactory { factoryCalled = true; return nil }
+
+	done := make(chan int, 1)
+	go func() { done <- Main([]string{"-home", home, "--headless-test"}, &bytes.Buffer{}, "0.2.0") }()
+	<-headless.ready
+	c := NewClient(port)
+	waitFor(t, "hosted server", func() bool { _, err := c.Status(context.Background()); return err == nil })
+	headless.Quit()
+	select {
+	case code := <-done:
+		if code != 0 {
+			t.Fatalf("exit %d", code)
+		}
+	case <-time.After(QuitTimeout + 5*time.Second):
+		t.Fatal("Main did not return")
+	}
+	if factoryCalled || len(opened) != 0 {
+		t.Errorf("windows built %v, opened %v", factoryCalled, opened)
+	}
+	headless.mu.Lock()
+	defer headless.mu.Unlock()
+	if len(headless.hotkeys) != 0 {
+		t.Errorf("hotkey requested in headless mode: %v", headless.hotkeys)
+	}
+}
+
+func TestHeadlessOpenLogsOnlyOwnPages(t *testing.T) {
+	var buf bytes.Buffer
+	open := headlessOpen(slog.New(slog.NewJSONHandler(&buf, nil)))
+	_ = open("http://127.0.0.1:7878/ui/today")
+	_ = open("https://example.com/secret-bookmark")
+	_ = open(`C:\Users\someone\.stkr`)
+	out := buf.String()
+	if !strings.Contains(out, "http://127.0.0.1:7878/ui/today") || strings.Contains(out, "secret-bookmark") || strings.Contains(out, "someone") {
+		t.Fatalf("log: %s", out)
+	}
+}
+
+func TestWindowsForNil(t *testing.T) {
+	if windowsFor(nil, "h", true, slog.Default()) != nil {
+		t.Fatal("a nil factory function must give no windows")
+	}
+}

@@ -9,7 +9,19 @@ How the Windows desktop app (`stkrw.exe`) shows the web UI in its two windows, a
 | Panel | `http://127.0.0.1:<port>/ui/panel` (first load adds `?focus=idea` when opened for capture) | About 360 x 560, tool window (no taskbar button), above all windows while pinned. Closing (X, Esc) hides it. |
 | App | the page asked for, default `/ui/today` | Normal resizable window with a taskbar button. Closing destroys it. |
 
-Both are WebView2 windows. The browser data lives in `<home>/desktop/webview`. Pages are only ever loaded from the server of the app; a link to another origin opens in the default browser.
+Both are WebView2 windows. The browser data lives in `<home>/desktop/webview`. Pages are only ever loaded from the server of the app.
+
+## Navigation policy
+
+Each window remembers the origin of the page it was asked to load (`http://127.0.0.1:<port>`: scheme and host with port, compared without regard to case). Before every navigation the window compares the target with that origin:
+
+| Target | Result |
+|---|---|
+| Same origin (any path) | Allowed. |
+| `about:blank` | Allowed. |
+| Another host, another port, another scheme (`https://127.0.0.1:<port>`), an address with a user name, `file:`, `data:`, `javascript:` or an empty address | Cancelled. |
+
+A cancelled `http` or `https` target (without a user name) is opened in the default browser, the same as a `url:` message. A request for a new window (`window.open`, `target=_blank`) never opens a window: a page of the same origin opens in the app window, an `http` or `https` address opens in the default browser, anything else is ignored. The decision is `desktop.NavigationAllowed(origin, target)`. The log records that a navigation was blocked, never the address.
 
 ## Messages from a page to the app
 
@@ -47,6 +59,7 @@ On start a saved place is moved and shrunk to lie inside the work area (the scre
 
 ## Errors
 
-- WebView2 Runtime missing, or a window cannot be created: one notification, and every window action opens the page in the default browser. The app keeps running.
+- WebView2 Runtime missing: one notification, and every window action opens the page in the default browser. The app keeps running.
+- WebView2 installed but a window cannot be created (its environment or controller fails): the same fallback with another notification ("The STKR window could not be opened"). This never ends the program; the WebView2 wrapper in `internal/desktop/edge` returns the error instead of exiting.
 - Another program already holds `desktop.hotkey`: one notification naming the key; the hotkey stays off.
 - An invalid `desktop.hotkey` is refused by `stkr config set` and by Settings; a hand-edited invalid value makes the app show a notification and run without a hotkey.

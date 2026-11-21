@@ -92,3 +92,27 @@ func ParseBridge(msg string) (Bridge, bool) {
 	}
 	return Bridge{}, false
 }
+
+// OriginOf returns "scheme://host[:port]" of an http(s) address, or "".
+func OriginOf(raw string) string {
+	u, err := url.Parse(raw)
+	if err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" || u.User != nil {
+		return ""
+	}
+	return u.Scheme + "://" + strings.ToLower(u.Host)
+}
+
+// NavigationAllowed reports whether a window whose pages come from origin may
+// navigate to target. Only pages of the same origin (our own server) and
+// about:blank are allowed; everything else, including data: and file:
+// addresses, is refused and, when it is an http(s) address, handed to the
+// default browser by the caller.
+func NavigationAllowed(origin, target string) bool {
+	if target == "about:blank" {
+		return true
+	}
+	if origin == "" {
+		return false
+	}
+	return OriginOf(target) == strings.ToLower(origin)
+}
