@@ -90,3 +90,33 @@ func (w *FakeWindows) result(title string) error {
 	}
 	return domain.New(domain.ErrNotFound, "no window")
 }
+
+// FakeAutostart is an in-memory platform.Autostarter: tests must never touch
+// the real sign-in registry key.
+type FakeAutostart struct {
+	mu sync.Mutex
+	on bool
+	// Err is returned by Set when set.
+	Err error
+	// Calls counts Set calls.
+	Calls int
+}
+
+// Enabled reports the stored state.
+func (a *FakeAutostart) Enabled() (bool, error) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	return a.on, nil
+}
+
+// Set stores the state.
+func (a *FakeAutostart) Set(on bool) error {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	a.Calls++
+	if a.Err != nil {
+		return a.Err
+	}
+	a.on = on
+	return nil
+}

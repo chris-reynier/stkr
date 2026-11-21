@@ -112,6 +112,10 @@ type Desktop struct {
 	Hotkey string `yaml:"hotkey"`
 	// OpenPanelOnStart shows the panel when the app starts.
 	OpenPanelOnStart bool `yaml:"open_panel_on_start"`
+	// Autostart records the "Start STKR when I sign in" choice made in
+	// Settings. The sign-in entry itself is the HKCU Run value STKR, which
+	// Settings writes or removes; this key only mirrors it.
+	Autostart bool `yaml:"autostart"`
 }
 
 // Update configures the update check.

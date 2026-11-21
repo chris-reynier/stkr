@@ -112,6 +112,8 @@ func TestSet(t *testing.T) {
 		{"desktop.hotkey", "Ctrl+Banana", false, nil},
 		{"desktop.panel_on_top", "false", true, func(c *Config) bool { return !c.Desktop.PanelOnTop }},
 		{"desktop.open_panel_on_start", "true", true, func(c *Config) bool { return c.Desktop.OpenPanelOnStart }},
+		{"desktop.autostart", "true", true, func(c *Config) bool { return c.Desktop.Autostart }},
+		{"desktop.autostart", "maybe", false, nil},
 		{"nope", "1", false, nil},
 		{"ollama.nope", "1", false, nil},
 		{"port.x", "1", false, nil},

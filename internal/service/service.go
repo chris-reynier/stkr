@@ -60,6 +60,9 @@ type Deps struct {
 	// running version (default buildinfo.Version).
 	Updater *upd.Updater
 	Version string
+	// Autostart switches the "start when I sign in" entry (nil uses the
+	// Windows Run key for the desktop program beside this one; tests pass a fake).
+	Autostart platform.Autostarter
 }
 
 // Service is the application facade.
@@ -76,6 +79,7 @@ type Service struct {
 	windows    platform.Windows
 	launcher   platform.Launcher
 	clipboard  platform.Clipboard
+	autostart  platform.Autostarter
 	promptsDir string
 	capt       *captureState
 	ai         *aiState
@@ -108,6 +112,10 @@ func New(st *store.Store, clk clock.Clock, cfg *config.Config, deps Deps) (*Serv
 	if lau == nil {
 		lau = platform.NewLauncher(cfg.Launch.Command, cfg.Launch.Args)
 	}
+	autostart := deps.Autostart
+	if autostart == nil {
+		autostart = platform.NewAutostart(DesktopExe())
+	}
 	clip := deps.Clipboard
 	if clip == nil {
 		clip = platform.NewClipboard()
@@ -116,6 +124,7 @@ func New(st *store.Store, clk clock.Clock, cfg *config.Config, deps Deps) (*Serv
 		windows:    win,
 		launcher:   lau,
 		clipboard:  clip,
+		autostart:  autostart,
 		promptsDir: deps.PromptsDir,
 		updater:    deps.Updater,
 		version:    deps.Version,

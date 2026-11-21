@@ -15,6 +15,7 @@ import (
 	"github.com/chris-reynier/stkr/internal/config"
 	"github.com/chris-reynier/stkr/internal/domain"
 	"github.com/chris-reynier/stkr/internal/store"
+	"github.com/chris-reynier/stkr/internal/testutil"
 )
 
 var paris, _ = time.LoadLocation("Europe/Paris")
@@ -53,7 +54,7 @@ func newFixture(t *testing.T) *fixture {
 	cfg.Timezone = "Europe/Paris"
 	clk := clock.NewFake(at("2026-11-16 09:00"))
 	logs := &bytes.Buffer{}
-	svc, err := New(st, clk, cfg, Deps{BackupDir: backups, Logger: slog.New(slog.NewTextHandler(logs, nil))})
+	svc, err := New(st, clk, cfg, Deps{BackupDir: backups, Logger: slog.New(slog.NewTextHandler(logs, nil)), Autostart: &testutil.FakeAutostart{}})
 	if err != nil {
 		t.Fatal(err)
 	}
