@@ -1,4 +1,4 @@
-# Performance and size numbers (v0.1.0)
+# Performance and size numbers (v0.1.0; the desktop app is at the end)
 
 Targets: deck POST under 100 ms, key image GET under 50 ms, idle memory under 50 MB, binary under 30 MB, startup that does not depend on the network, no CGO.
 
@@ -57,3 +57,47 @@ All are under the 30 MB target.
 - No CGO: every build and the release use `CGO_ENABLED=0`; the SQLite driver is pure Go.
 - A single Windows `.exe`: the web UI, templates, font, HTMX and time zone data are embedded.
 - Missing optional tools degrade safely: see the Capture rows in [acceptance.md](acceptance.md).
+
+# Desktop app (v0.2.0)
+
+Targets: working set under 50 MB with the panel closed, under 80 MB (the program plus its WebView2 processes) with the panel open, and the tray icon within 1.5 s of starting the program.
+
+## Method
+
+`packaging/windows/measure-desktop.ps1` starts `stkrw.exe` on a temporary data folder and a free port and reads, with the PowerShell process APIs:
+
+- **Cold start to the tray icon**: the process start time to the `tray ready` line in `desktop.log`, which the app writes the moment it adds its icon. **Cold start to the server**: process start to the first answer of `GET /healthz`. The time is one process start after the files are in the file cache; the very first start after a download or build can be slower while the system scans the new file.
+- **Working set** (Task Manager "Memory") and **private bytes** of `stkrw.exe` after the idle time (30 s), and the working set of every child process (the `msedgewebview2.exe` processes of the panel).
+
+Two modes. The default runs `stkrw --headless-test`: the real program with the single-instance lock, the hidden message window and the hosted server, but no icon, no window and no hotkey. WebView2 is started only when a window is first shown, so this is the "panel closed" state; the real tray adds one small icon handle. The `-Panel` mode runs the real app with `desktop.open_panel_on_start`, and needs a visible window, so it is for CI and disposable machines only (manual check M16). Local runs on a working desktop use the default mode only.
+
+The CI job "desktop memory and start time" (windows-latest) runs both modes on every pull request and writes the tables to the job summary. The panel-closed run fails only above twice the target, the panel-open run never fails the build. Shared runners are noisy, so read the numbers as a range.
+
+## Results (panel closed, headless test mode)
+
+Measured on 2026-11-21 on Windows 11 (x64), Go 1.27.4, the release flags (`-s -w -H windowsgui`), four runs of 20 to 30 s idle:
+
+| Measure | Value | Target |
+|---|---|---|
+| Cold start to the tray icon | 0.04 to 0.05 s | under 1.5 s |
+| Cold start to the server answering | 0.20 to 0.23 s | |
+| Working set, panel closed | 19.2 to 22.9 MB (about 20 MB; `stkr serve` alone: 17.6 MB) | under 50 MB |
+| Private bytes | 50 to 54 MB | |
+| Child processes | 0 | 0 |
+
+One run right after a fresh build showed 62.8 MB in the first minute and 20 MB in every later run, the same effect as the 66.7 MB outlier in the v0.1.0 numbers above (the system scanning a new file). If you measure above 50 MB, measure again.
+
+`stkrw.exe` is 18.0 MB (release flags, amd64), under the 35 MB budget of the desktop phases.
+
+## Panel open
+
+Not measured on the development machine: opening the panel shows a window, which the method above does not do on a working desktop. It was measured once by the CI job on a windows-latest runner (pull request for this release, 20 s after the panel opened):
+
+| Measure | Value | Target |
+|---|---|---|
+| stkrw.exe working set | 38.5 MB | |
+| 6 `msedgewebview2.exe` child processes, working set | 269.9 MB | |
+| Total working set | 308.4 MB | under 80 MB |
+| Cold start to the tray icon (real icon) | 0.06 s | under 1.5 s |
+
+**The 80 MB target is not met by this measure.** Adding up working sets counts pages shared between the WebView2 processes (and with other Edge-based programs) several times, so 308 MB overstates what the machine really uses, but the panel clearly costs far more than the closed state (about 20 MB). Private bytes or "Memory (private working set)" in Task Manager is the fairer number and is part of manual check M16. Closing the panel does not end its WebView2 processes (the window is only hidden, so it opens quickly); quitting STKR does. The target is kept as the goal; reducing the cost (for example ending the web view when the panel stays hidden for a while) is on the backlog.

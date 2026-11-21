@@ -10,14 +10,16 @@ import (
 	"path/filepath"
 	"runtime"
 	"sort"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
 	"unsafe"
 
-	"github.com/jchv/go-webview2/pkg/edge"
 	"github.com/jchv/go-webview2/webviewloader"
 	"golang.org/x/sys/windows"
+
+	"github.com/chris-reynier/stkr/internal/desktop/edge"
 )
 
 // The panel and the app window show the web UI in WebView2 through the
@@ -293,6 +295,7 @@ type webWindow struct {
 	chromium  *edge.Chromium
 	ready     bool
 	loaded    string // address last loaded
+	origin    string // origin of the pages this window may show (set before each load)
 	normal    Placement
 	maximized bool
 	shown     bool // shown at least once
@@ -398,7 +401,7 @@ func (w *webWindow) run() {
 func (w *webWindow) finish(allowRestart bool) {
 	w.mu.Lock()
 	w.hwnd.Store(0)
-	w.ready, w.chromium, w.loaded, w.shown, w.quitting = false, nil, "", false, false
+	w.ready, w.chromium, w.loaded, w.origin, w.shown, w.quitting = false, nil, "", "", false, false
 	done := w.done
 	restart := allowRestart && len(w.queue) > 0 && !w.h.closing.Load()
 	if restart {
@@ -497,9 +500,14 @@ func (w *webWindow) create() error {
 	c := edge.NewChromium()
 	c.DataPath = w.h.dataDir
 	c.MessageCallback = w.onMessage
+	c.NavigationStartingCallback = w.onNavigate
+	c.NewWindowCallback = w.onNewWindow
 	w.chromium = c
 	if !c.Embed(hwnd) {
 		_, _, _ = procDestroyWindow.Call(hwnd)
+		if cerr := c.Err(); cerr != nil {
+			return fmt.Errorf("WebView2 could not be started: %w", cerr)
+		}
 		return errors.New("WebView2 could not be started")
 	}
 	if s, serr := c.GetSettings(); serr == nil && s != nil {
@@ -658,6 +666,7 @@ func (w *webWindow) showPanel(url string, focusIdea bool) {
 		if focusIdea {
 			target += "?focus=idea"
 		}
+		w.origin = OriginOf(url)
 		w.chromium.Navigate(target)
 		w.loaded = url
 	} else {
@@ -675,6 +684,7 @@ func (w *webWindow) showApp(url string) {
 	if !w.ready {
 		return
 	}
+	w.origin = OriginOf(url)
 	w.chromium.Navigate(url)
 	w.loaded = url
 	w.clampToScreen()
@@ -780,4 +790,35 @@ func webWndProc(hwnd windows.HWND, msg uint32, wp, lp uintptr) (ret uintptr) {
 	}
 	r, _, _ := procDefWindowProcW.Call(uintptr(hwnd), uintptr(msg), wp, lp)
 	return r
+}
+
+// onNavigate runs before every navigation of the window and cancels the ones
+// that leave our own server. An http(s) target is opened in the default
+// browser instead. Not logged with the address (it may be a bookmark).
+func (w *webWindow) onNavigate(uri string) bool {
+	if NavigationAllowed(w.origin, uri) {
+		return false
+	}
+	w.h.log.Info("navigation blocked", "window", string(w.kind))
+	w.openExternal(uri)
+	return true
+}
+
+// onNewWindow handles a request for a new window (the window itself is always
+// suppressed by the edge package): a page of our server opens in the app
+// window, anything else in the default browser.
+func (w *webWindow) onNewWindow(uri string) {
+	if o := OriginOf(uri); o != "" && o == w.origin {
+		if b, ok := ParseBridge("app:" + strings.TrimPrefix(uri, o)); ok && w.h.cb.Select != nil {
+			w.h.cb.Select(b.Action)
+		}
+		return
+	}
+	w.openExternal(uri)
+}
+
+func (w *webWindow) openExternal(uri string) {
+	if b, ok := ParseBridge(prefixURL + uri); ok && w.h.cb.Select != nil {
+		w.h.cb.Select(b.Action)
+	}
 }

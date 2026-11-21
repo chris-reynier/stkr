@@ -4,6 +4,19 @@ STKR is a local-first task stack manager. It keeps track of what you are working
 
 Status: 0.x, early but complete for daily use. Windows first, with Linux and macOS builds.
 
+## Install on Windows (no terminal needed)
+
+1. Download `stkr_<version>_windows_amd64_setup.exe` from the [releases page](https://github.com/chris-reynier/stkr/releases) (on an ARM PC take the `arm64` one) and double-click it. It installs for your user only, no admin rights. Windows SmartScreen may say "Windows protected your PC" because the file is not code-signed yet: choose **More info**, then **Run anyway**.
+2. Leave "Launch STKR" ticked on the last page. A small STKR icon appears **next to the clock**. If you do not see it, click the `^` arrow there and drag the icon onto the taskbar.
+3. **Click the icon.** The panel opens: pick a project to start tracking, type an idea and press Enter, press Start day or Close day. Right-click the icon for the full menu; "Open STKR" opens the full interface (Today, Week, Settings) in its own window. Press **Ctrl+Alt+Space** from any program to open the panel with the idea box ready.
+4. Create your projects in **Settings**, then switch between them from the panel. The [Getting started](docs/user/getting-started.md) page walks through a first day without a terminal.
+
+Update later with one click: the icon's menu shows **Install update** when a new version exists ([Update](docs/user/update.md)). Details, the uninstall steps and the zip alternative are in [Install](docs/user/install.md) and [Desktop app](docs/user/desktop.md).
+
+Coming from v0.1.0? `stkr update` in v0.1.0 replaces only `stkr.exe`, so run the setup file once to get the desktop app. After that, updates are one click.
+
+On Linux and macOS there is no desktop app: unpack the archive, put `stkr` on your PATH and use the command line and the local web page below.
+
 ## Features
 
 | Feature | Where to read more |
@@ -21,13 +34,11 @@ Status: 0.x, early but complete for daily use. Windows first, with Linux and mac
 
 Everything works without AI, without a Stream Deck and without a network.
 
-## Install
+## Install from a terminal, or build it
 
-On Windows, download `stkr_<version>_windows_amd64_setup.exe` from the [releases page](https://github.com/chris-reynier/stkr/releases) and double-click it: it installs `stkr` and the desktop app for your user, no admin rights needed. On Linux and macOS, unpack the archive and put `stkr` on your PATH. Details, including the Windows SmartScreen note, are in [Install](docs/user/install.md). Update later with one click from the tray icon or Settings, or with `stkr update` ([Update](docs/user/update.md)).
+Windows zip, Linux and macOS archives are on the same releases page ([Install](docs/user/install.md)). To build from source you need Go 1.27 or newer: `go build -o stkr ./cmd/stkr`. The Windows desktop app: `go build -ldflags "-H windowsgui" -o stkrw.exe ./cmd/stkrw`.
 
-To build from source you need Go 1.27 or newer: `go build -o stkr ./cmd/stkr`. The Windows desktop app: `go build -ldflags "-H windowsgui" -o stkrw.exe ./cmd/stkrw`.
-
-## Quick start (5 minutes)
+## Quick start with the command line (5 minutes)
 
 1. Check the install: `stkr version`.
 2. Start the server and leave it running: `stkr serve` (it prints `http://127.0.0.1:7878`).
@@ -51,7 +62,7 @@ To keep test data away from your real data, set `STKR_HOME` to another folder.
 - [Command reference](docs/user/cli/stkr.md)
 - [Architecture](docs/dev/architecture.md), [testing](docs/dev/testing.md), [acceptance matrix](docs/dev/acceptance.md), [security review](docs/dev/security-review.md) and [performance numbers](docs/dev/nfr.md)
 - [Interface contracts](docs/contracts/README.md)
-- [Release notes](docs/dev/release-notes-v0.1.0.md)
+- Release notes: [v0.2.0](docs/dev/release-notes-v0.2.0.md), [v0.1.0](docs/dev/release-notes-v0.1.0.md)
 - [Contributing](CONTRIBUTING.md) and [security policy](SECURITY.md)
 
 ## License

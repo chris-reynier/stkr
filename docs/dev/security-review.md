@@ -1,4 +1,4 @@
-# Security review (v0.1.0)
+# Security review (v0.1.0, with the v0.2.0 desktop addendum at the end)
 
 Scope: the rules in [SECURITY.md](../../SECURITY.md) and the security rules for contributors. Method: source searches for each rule, a test for each rule that can be tested, a vulnerability scan, and a list of what remains manual. Date of the review: 2026-11-21, commit before the v0.1.0 tag.
 
@@ -92,3 +92,66 @@ No telemetry. The complete list of outbound calls (source search for `http.Clien
 - **Any local process of the same user can call the API.** The server has no login because it is bound to loopback and checks Host and Origin; another program running as you can still send requests. This is the same trust level as the database file in your profile.
 - **AI provider programs run with your account.** The configured `claude` or `copilot` command is whatever you set in `config.yaml`; STKR does not sandbox it. Do not point these keys at programs you do not trust.
 - **The MCP server trusts its client.** `stkr mcp` runs as you and can change your time data. It hides personal content and never exposes paths or settings, but an agent you connect can switch contexts, add ideas and report events by design.
+
+## Addendum: desktop app, installer and in-app update (v0.2.0)
+
+Scope: `stkrw.exe` (tray, panel and app windows), the Windows setup program, and the update flow added for the desktop app. Method as above: a test for each rule that can be tested without a real desktop, a static check where the code runs only in the installer, and a manual list for the rest. Date: 2026-11-21, branch for v0.2.0.
+
+### Summary
+
+| Rule | Result | Evidence |
+|---|---|---|
+| New routes sit behind the Host and Origin guards | Pass | `e2e/TestAcceptanceEveryRouteIsGuarded`, `e2e/TestAcceptanceRouteScanSeesEveryRegistration` |
+| Update install is possible only under the desktop host | Pass | `e2e/TestSmokeP14SettingsAndUpdate` (plain `serve`), `e2e/TestDesktopHeadlessLifecycle` (desktop host), `web` hook tests |
+| The setup program is checksum-verified before it runs | Pass | `update/TestSetupChecksumMismatchNotStarted`, `update/TestSetupPathStartsVerifiedSetup` |
+| No new outbound calls | Pass | `e2e/TestAcceptanceOutboundHTTPOnlyWhereAllowed` |
+| The PATH edit touches only HKCU and only its own entry | Pass (static) | `e2e/TestAcceptanceInstallerStaysPerUser`; CI job "windows installer" runs the real silent install and uninstall |
+| The web view does not navigate to other origins | Pass (needs a manual check) | `desktop/TestNavigationAllowed`, `desktop/TestOriginOf`; manual check M11 |
+| Uninstall data deletion is opt-in | Pass (static) | `e2e/TestAcceptanceInstallerStaysPerUser`; manual check M13 |
+| A window that cannot start does not end the program | Pass after a fix | `desktop/TestWebViewFailureIsReportedNotFatal` |
+
+### Routes the desktop app added
+
+`GET /api/status`, `GET /ui/panel`, `GET /ui/panel/live`, `POST /ui/import/clipboard`, `POST /ui/update/check`, `POST /ui/update/apply`, `POST /ui/settings/config`, `POST /ui/settings/backup`, `POST /ui/settings/open-data`, plus the existing pages. They are registered on the same mux as every other route, so the Host guard (421) and the Origin guard on POST (403) wrap them. The route-table test now also scans `internal/server`, and a second test fails if any registration does not use a literal `"METHOD /path"`, because such a route would escape the table. The same test asserts that the routes above are in the table and that there is no route to show, quit or control the desktop app.
+
+**There is no "desktop signal" route.** A second launch and `stkrw --quit` reach the running instance with a window message posted to its hidden window (found by window class and by a name derived from the data folder). The message carries two numbers (show or quit) and no text, so no content and no address crosses between the programs, and nothing on the network can trigger a quit. Only a process of the same user session can post it.
+
+### Update from the app
+
+- **Only under the desktop host.** `POST /ui/update/apply` fails with a conflict when the page is served by plain `stkr serve` (there is no hook to call), when no update was found by a check, and for a development build. Under `stkr serve` the page shows the command to run instead of a button.
+- **Nothing runs before verification.** The release list comes from the GitHub API (`update.check`, or an explicit "Check now"). The archive or the setup is downloaded with a size cap, its SHA-256 is compared with `checksums.txt` of the same release, and only then is anything installed or started. A missing `checksums.txt`, a missing entry or a mismatch stops the update with nothing changed (`update/TestSetupChecksumMismatchNotStarted`, `update/TestChecksumMismatchKeepsCurrent`). The setup is written to a private (0700) temporary folder and started detached with fixed arguments (`/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /CURRENTUSER`, plus `/RELAUNCH=1` from the desktop app) and no shell.
+- **All or nothing.** The replace method renames the old programs aside, renames the new ones in and undoes everything in reverse order on any failure (`update/TestApplyIsAllOrNothing`). It is never automatic: it needs a click, and the tray asks first with a message box whose default is No.
+- **What it does not protect against.** A checksum protects against corruption, not against a compromised release, and the setup is not code-signed (SmartScreen warns). Both are on the backlog.
+
+### Outbound network
+
+No new call. `TestAcceptanceOutboundHTTPOnlyWhereAllowed` lists the only files that make HTTP requests: the Ollama client, the bookmark title fetch, the updater, and two loopback clients (the `stkr update` server probe and the desktop app's client of `127.0.0.1`). Any new file that uses an HTTP client fails the test until it is added to the list on purpose. The WebView2 runtime is Microsoft's component; STKR loads only pages from `127.0.0.1` in it (see "Accepted risks").
+
+### The web view
+
+- Every page comes from the local server (CSP `default-src 'self'`, no inline script, no CDN). The first-party script `desktop.js` sends only a fixed set of messages to the app (`hide`, `pin`, `app:/ui/...`, `url:http(s)://...`) and `desktop.ParseBridge` ignores everything else (`desktop/TestParseBridge`).
+- **Navigation is now blocked natively.** The window uses a patched copy of the WebView2 wrapper (see below) that handles `NavigationStarting`: a navigation to any address that is not the window's own origin (`http://127.0.0.1:<port>`) or `about:blank` is cancelled, including `file:`, `data:`, `javascript:` and another port or host. An `http(s)` target is handed to the default browser instead. Requests for a new window (`window.open`, `target=_blank`) are always suppressed and routed the same way. The decision is a pure function covered by table tests; the COM call that applies it needs a desktop and is part of manual check M11.
+- **A broken web view cannot take the program down.** The upstream wrapper called `log.Fatalf` when WebView2 could not create its environment, which would have ended `stkrw` and its server. The copy in `internal/desktop/edge` returns an error instead; the app then tells the user once and falls back to the browser. While fixing this, a second upstream defect turned up: the failure code was compared as a signed 64-bit number, so a failed start never matched and would have crashed on a nil pointer. `desktop/TestWebViewFailureIsReportedNotFatal` covers both. It drives the wrapper's completion callbacks with failure results (no window, no runtime needed). A first version of the test embedded a real web view with an unusable data folder; on a CI runner that crashed inside WebView2, so the test no longer depends on the runtime's own failure behaviour, and the wrapper also treats a missing environment or controller as a failure and bounds its wait.
+- Permission prompts of the web view (camera, location and similar) are not used by any page. The WebView2 profile lives in `<data folder>/desktop/webview` and is not shared with Edge.
+
+### Installer
+
+- `PrivilegesRequired=lowest` and no machine-wide location: `TestAcceptanceInstallerStaysPerUser` fails on `HKLM`, `HKA`, `{pf}`, `{commonappdata}`, `{sys}` and any `Reg*` call or `[Registry]` entry whose root is not `HKCU`.
+- The PATH edit appends the install folder to the user's `Path` (kept as an expandable string) and removes only that entry on uninstall; other entries are untouched. The CI job "windows installer" installs silently, checks the PATH entry, upgrades, uninstalls and checks that the entry is gone and that a data folder in a temporary `STKR_HOME` is unchanged. The sign-in entry is the single value `HKCU\...\Run\STKR`.
+- Data deletion on uninstall is opt-in: two confirmations, each defaulting to No, a silent uninstall always keeps the data, and the folder is deleted only if `SafeToDelete` accepts it. Manual check M13.
+
+### Logs
+
+`desktop.log` records action kinds, ports, versions and error kinds, never a context label, note, idea, bookmark or path. `desktop/TestAppHostsAndRunsActions` asserts that labels and ids stay out of the log, and `e2e/TestDesktopHeadlessLifecycle` searches the real log after a session that contained an idea and a context label. The test mode logs "open" only for its own `127.0.0.1` pages and the word "external" for anything else (`desktop/TestHeadlessOpenLogsOnlyOwnPages`).
+
+### Test mode
+
+`stkrw --headless-test` exists for the acceptance tests. It keeps the real single-instance mutex, the hidden message window and the hosted server, but has no notification-area icon, no windows, no global hotkey, no message boxes and never opens a browser or a folder. It is not a back door: it adds no route and no capability, it only turns things off.
+
+### Accepted risks and manual checks (desktop)
+
+- **Unsigned programs and setup.** SmartScreen shows a warning on first run; the troubleshooting page explains it. Code signing is on the backlog.
+- **WebView2 is Microsoft's browser engine.** It is updated by Windows Update, and its own diagnostics settings are Microsoft's. STKR loads only its local server in it.
+- **The window message can be posted by any process of the same user session.** Its only effects are "show the panel" and "quit the app", the same power that process has by ending the app.
+- **A patched copy of a third-party wrapper.** `internal/desktop/edge` is MIT code that STKR now maintains; its changes are listed in `doc.go` and `doc.go` says why. Re-diff it against upstream when go-webview2 is updated.
+- Manual checks M10 to M16 in [acceptance.md](acceptance.md) cover what needs a real desktop: tray icon, panel, hotkey, navigation block, installer wizard, update, sign-in entry and the panel-open measurements.

@@ -13,7 +13,8 @@ cmd/stkr -> internal/cli --+
 cmd/stkrw -> internal/desktop --HTTP--> 127.0.0.1:<port> (attach) or internal/server.Start (host)
 internal/server    listener, API + web routes, background jobs; used by `stkr serve` and stkrw
 internal/desktop   tray app: attach/host, status polling, menu model, notifications; Win32 in tray_windows.go
-                   panel + app windows (WebView2 via go-webview2, one thread each): webview_windows.go; window state, hotkey and page messages are pure Go
+                   panel + app windows (WebView2, one thread each): webview_windows.go; window state, hotkey, page messages and the navigation policy are pure Go
+internal/desktop/edge  patched copy of the go-webview2 "edge" wrapper (errors instead of log.Fatal, navigation and new-window handlers), Windows only
 internal/hotkey    "Ctrl+Alt+Space" parser shared by config validation and the tray
 internal/app       wiring: config -> dependencies -> service; background workers
 internal/config    YAML load/save, defaults, validation, redaction

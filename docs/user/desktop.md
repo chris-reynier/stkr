@@ -51,7 +51,7 @@ The panel refreshes itself every `desktop.poll_seconds`.
 
 "Open STKR", and the pages in the menu entry Open, show the full interface (Today, Week, Agents, Ideas, Links, Settings) in a normal, resizable window with a taskbar button. It remembers its size and position. Closing it only closes the window. Links to other sites open in your default browser.
 
-The panel and the app window use the Microsoft Edge WebView2 Runtime, which is part of Windows 11 and of current Windows 10. If it is missing, STKR shows a notification once and opens the pages in your browser instead; see Troubleshooting.
+The panel and the app window use the Microsoft Edge WebView2 Runtime, which is part of Windows 11 and of current Windows 10. If it is missing, STKR shows a notification once and opens the pages in your browser instead; see Troubleshooting. The windows only ever show pages of your own STKR server: a link to anything else (a bookmark, a release page) opens in your default browser, and a page cannot open extra windows. If a window cannot be started for any reason, STKR keeps running, says so once and uses the browser.
 
 ### The hotkey
 
@@ -130,6 +130,7 @@ The app writes its own log to `logs\desktop.log` in the data folder; the server 
 - **The icon is grey and the tooltip says "server not reachable".** The app could not start its server, or the `stkr serve` it used has stopped. It tries again at every refresh and takes over when `stkr serve` is gone. Check `logs\desktop.log` and `logs\stkr.log`.
 - **"Port 7878 is in use, change `port` in Settings".** Another program (not STKR) uses the port. The app then runs its server on a free port and opens Settings there. Stream Deck keys cannot reach a random port: set `port` to a free one, for example `stkr config set port 7979`, update your Stream Deck keys, and restart the app.
 - **About says "attached to `stkr serve`".** A `stkr serve` was already running on the port, so the app uses it. That is fine. If you want the app to run the server, stop `stkr serve` (the app takes over within one refresh) and remove its autostart task.
+- **"The STKR window could not be opened".** The WebView2 Runtime is installed but a window failed to start, for example because the `desktopwebview` folder in the data folder cannot be written. STKR (the icon, the server, Stream Deck keys) keeps running and opens its pages in your browser. Restart STKR; if it repeats, delete the `desktopwebview` folder and look at `logsdesktop.log`.
 - **"Microsoft Edge WebView2 is not installed".** The panel and the app window need the WebView2 Runtime. Install the "Evergreen Standalone Installer" from Microsoft's WebView2 page, then restart STKR. Until then the panel actions open Today (or Ideas, for "Capture idea...") in your browser and the other pages open in your browser too. The panel is an ordinary page, so you can also open `http://127.0.0.1:7878/ui/panel` in a browser tab yourself.
 - **The hotkey does nothing.** STKR shows a notification at start if another program already uses the key. Pick another one with `desktop.hotkey`. Some keys, such as Win+L, are reserved by Windows and cannot be used.
 - **The panel is not on top of a program.** Check that the pin is on ("Keep panel on top" is checked in the tray menu). A program running as administrator, or a full-screen game, can still cover it.

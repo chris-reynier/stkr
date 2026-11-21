@@ -200,7 +200,12 @@ func TestWindowCreationFailureFallsBackToTheBrowser(t *testing.T) {
 	r, _ := startAppWith(t, newFakeTray(), func(o *Options) { o.Windows = fw.factory() })
 	fw.cb.Failed(errors.New("boom"))
 	waitFor(t, "today in the browser", func() bool { return strings.Contains(r.open.all(), "/ui/today") })
-	waitFor(t, "notice", func() bool { return strings.Contains(r.tray.noticeTexts(), "WebView2 is not installed") })
+	waitFor(t, "notice", func() bool { return strings.Contains(r.tray.noticeTexts(), "could not be opened") })
+	// Regression: a window that fails to start (WebView2 present, environment
+	// or profile broken) was reported as a missing runtime.
+	if strings.Contains(r.tray.noticeTexts(), "not installed") {
+		t.Errorf("a failed window was reported as a missing runtime: %s", r.tray.noticeTexts())
+	}
 	r.app.Activate()
 	waitFor(t, "later actions use the browser", func() bool { return strings.Count(r.open.all(), "/ui/today") == 2 })
 	if got := fw.all(); got != "" {

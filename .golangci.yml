@@ -63,6 +63,8 @@ linters:
         - name: superfluous-else
         - name: unreachable-code
   exclusions:
+    paths:
+      - internal/desktop/edge
     presets:
       - std-error-handling
     rules:
@@ -74,3 +76,6 @@ formatters:
   enable:
     - gofmt
     - goimports
+  exclusions:
+    paths:
+      - internal/desktop/edge

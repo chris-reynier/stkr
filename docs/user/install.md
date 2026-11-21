@@ -30,6 +30,8 @@ What gets installed, and where:
 
 Install a newer setup file over an older install to upgrade. Setup closes the running STKR app first, keeps the choices you made, and keeps your data. You can also update from inside STKR, see [Update](update.md).
 
+Coming from v0.1.0, which had no desktop app? Run the setup file once: `stkr update` in v0.1.0 replaces only `stkr.exe`. See [Update](update.md#from-v010).
+
 ### Uninstall on Windows
 
 Open Settings, Apps, Installed apps, find STKR and choose Uninstall. It removes the programs, the Start menu entry, the sign-in entry and the PATH entry. Your data folder is kept. Uninstall asks whether you also want to delete your data; the default is No, and Yes asks a second time because deleting cannot be undone. A silent uninstall (`unins000.exe /VERYSILENT`) always keeps your data.

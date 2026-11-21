@@ -172,6 +172,10 @@ type bitmapInfoHeader struct {
 // of Run; other goroutines queue calls and wake it with wmTrayCall.
 type winTray struct {
 	name string
+	// headless keeps the hidden window, the message loop and the single-instance
+	// signalling but never touches the notification area or the global hotkeys
+	// (stkrw --headless-test, used by the acceptance tests).
+	headless bool
 
 	mu    sync.Mutex
 	hwnd  windows.HWND
@@ -209,6 +213,10 @@ func newPlatformTray(name string) (Tray, error) {
 		_, _, _ = procSetDpiAwarenessContext.Call(^uintptr(3))
 	}
 	return &winTray{name: name}, nil
+}
+
+func newPlatformHeadlessTray(name string) (Tray, error) {
+	return &winTray{name: name, headless: true}, nil
 }
 
 func u16(s string) *uint16 {
@@ -257,7 +265,9 @@ func (t *winTray) Run(h Handler) error {
 	t.mu.Lock()
 	t.hwnd = windows.HWND(hwnd)
 	t.mu.Unlock()
-	t.addIcon()
+	if !t.headless {
+		t.addIcon()
+	}
 	h.Ready()
 	t.runQueue()
 
@@ -297,10 +307,16 @@ func (t *winTray) runQueue() {
 }
 
 func (t *winTray) SetIcon(is IconState, tooltip string) {
+	if t.headless {
+		return
+	}
 	t.post(func() { t.applyIcon(is, tooltip) })
 }
 
 func (t *winTray) Notify(n Notice) {
+	if t.headless {
+		return
+	}
 	t.post(func() {
 		d := t.nid()
 		d.UFlags = nifInfo
@@ -318,6 +334,10 @@ func (t *winTray) Notify(n Notice) {
 // hotkey belongs to the thread that registered it and arrives as WM_HOTKEY in
 // its message loop.
 func (t *winTray) SetHotkey(k hotkey.Key, done func(error)) {
+	if t.headless {
+		done(nil)
+		return
+	}
 	t.post(func() {
 		if t.hotkeyOn {
 			_, _, _ = procUnregisterHotKey.Call(uintptr(t.hwnd), hotkeyID)
@@ -417,7 +437,7 @@ func (t *winTray) wndProc(hwnd windows.HWND, msg uint32, wp, lp uintptr) (uintpt
 	case msg == wmHotKey:
 		t.h.Hotkey()
 		return 0, true
-	case msg == t.taskbarCreated && msg != 0:
+	case msg == t.taskbarCreated && msg != 0 && !t.headless:
 		t.addIcon()
 		t.applyIcon(t.iconState, t.tip)
 		return 0, true
@@ -426,8 +446,10 @@ func (t *winTray) wndProc(hwnd windows.HWND, msg uint32, wp, lp uintptr) (uintpt
 			_, _, _ = procUnregisterHotKey.Call(uintptr(hwnd), hotkeyID)
 			t.hotkeyOn = false
 		}
-		d := t.nid()
-		notifyIcon(nimDelete, &d)
+		if !t.headless {
+			d := t.nid()
+			notifyIcon(nimDelete, &d)
+		}
 		if t.icon != 0 {
 			_, _, _ = procDestroyIcon.Call(uintptr(t.icon))
 			t.icon = 0
