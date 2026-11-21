@@ -88,7 +88,7 @@ or set `STKR_HOME`, as for `stkr`. Each data folder can have its own icon.
 
 ### Start it at sign-in
 
-Press Win+R, type `shell:startup`, and put a shortcut to `stkrw.exe` in that folder. Do not also autostart `stkr serve` for the same data folder; the app runs the server itself.
+The installer has an option for this ("Start STKR when I sign in to Windows", on by default); it adds a sign-in entry for `stkrw.exe`. To turn it off later, open Task Manager, Startup apps, and disable STKR. If you installed from the zip, press Win+R, type `shell:startup`, and put a shortcut to `stkrw.exe` in that folder. Do not also autostart `stkr serve` for the same data folder; the app runs the server itself.
 
 ### Keep the icon visible
 

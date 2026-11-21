@@ -12,7 +12,7 @@ func newPlatformTray(string) (Tray, error) {
 
 func platformAcquireInstance(string) (func(), bool, error) { return func() {}, false, nil }
 
-func platformSignalInstance(string) error {
+func platformSignalInstance(string, bool) error {
 	return domain.New(domain.ErrUnavailable, UnsupportedMessage)
 }
 

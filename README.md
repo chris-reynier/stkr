@@ -23,7 +23,7 @@ Everything works without AI, without a Stream Deck and without a network.
 
 ## Install
 
-Download the archive for your system from the [releases page](https://github.com/chris-reynier/stkr/releases), unpack it and put `stkr` on your PATH. Details, including the Windows SmartScreen note, are in [Install](docs/user/install.md). Update later with `stkr update` ([Update](docs/user/update.md)).
+On Windows, download `stkr_<version>_windows_amd64_setup.exe` from the [releases page](https://github.com/chris-reynier/stkr/releases) and double-click it: it installs `stkr` and the desktop app for your user, no admin rights needed. On Linux and macOS, unpack the archive and put `stkr` on your PATH. Details, including the Windows SmartScreen note, are in [Install](docs/user/install.md). Update later with `stkr update` ([Update](docs/user/update.md)).
 
 To build from source you need Go 1.27 or newer: `go build -o stkr ./cmd/stkr`. The Windows desktop app: `go build -ldflags "-H windowsgui" -o stkrw.exe ./cmd/stkrw`.
 

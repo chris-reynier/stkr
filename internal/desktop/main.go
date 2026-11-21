@@ -43,14 +43,25 @@ func Main(args []string, stderr io.Writer, version string) int {
 	fs := flag.NewFlagSet("stkrw", flag.ContinueOnError)
 	fs.SetOutput(stderr)
 	homeFlag := fs.String("home", "", "data directory (default $STKR_HOME or ~/.stkr)")
+	quit := fs.Bool("quit", false, "ask the running app for this data directory to quit, then exit")
+	// --autostart is the marker the installer puts in the sign-in entry. It
+	// changes nothing today; accepting it keeps old entries working.
+	_ = fs.Bool("autostart", false, "started when the user signed in")
 	if err := fs.Parse(args); err != nil {
 		return 2
 	}
 	home, err := config.ResolveHome(*homeFlag)
-	if err == nil {
-		err = config.EnsureHome(home)
-	}
 	if err != nil {
+		fmt.Fprintln(stderr, err)
+		return 1
+	}
+	if *quit {
+		// Nothing running is fine: the goal (no running app) is met. The data
+		// folder is not created for this.
+		_ = signalInstance(InstanceName(home), true)
+		return 0
+	}
+	if err := config.EnsureHome(home); err != nil {
 		fmt.Fprintln(stderr, err)
 		return 1
 	}
@@ -70,7 +81,7 @@ func Main(args []string, stderr io.Writer, version string) int {
 		return 1
 	}
 	if already {
-		if err := signalInstance(name); err != nil {
+		if err := signalInstance(name, false); err != nil {
 			lg.Warn("cannot reach the running instance", "err", err)
 		}
 		lg.Info("already running, asked it to show")

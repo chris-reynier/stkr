@@ -3,6 +3,13 @@ version: 2
 
 project_name: stkr
 
+before:
+  hooks:
+    # Windows icon and version resources (generated, never committed).
+    - go run ./tools/genicon packaging/windows/stkr.ico
+    - go tool go-winres simply --arch amd64,arm64 --out cmd/stkr/rsrc --manifest none --icon packaging/windows/stkr.ico --file-version "{{ .Major }}.{{ .Minor }}.{{ .Patch }}.0" --product-version "{{ .Major }}.{{ .Minor }}.{{ .Patch }}.0" --file-description "STKR command line" --product-name STKR --original-filename stkr.exe --copyright "MIT License"
+    - go tool go-winres simply --arch amd64,arm64 --out cmd/stkrw/rsrc --manifest none --icon packaging/windows/stkr.ico --file-version "{{ .Major }}.{{ .Minor }}.{{ .Patch }}.0" --product-version "{{ .Major }}.{{ .Minor }}.{{ .Patch }}.0" --file-description "STKR desktop app" --product-name STKR --original-filename stkrw.exe --copyright "MIT License"
+
 builds:
   - id: stkr
     main: ./cmd/stkr
@@ -17,9 +24,25 @@ builds:
     goarch: [amd64, arm64]
     mod_timestamp: "{{ .CommitTimestamp }}"
 
+  # The Windows desktop app (no console window). Windows only.
+  - id: stkrw
+    main: ./cmd/stkrw
+    binary: stkrw
+    env:
+      - CGO_ENABLED=0
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w -H windowsgui -X github.com/chris-reynier/stkr/internal/buildinfo.Version={{.Version}} -X github.com/chris-reynier/stkr/internal/buildinfo.Commit={{.Commit}} -X github.com/chris-reynier/stkr/internal/buildinfo.Date={{.Date}}
+    goos: [windows]
+    goarch: [amd64, arm64]
+    mod_timestamp: "{{ .CommitTimestamp }}"
+
 archives:
   - id: stkr
-    ids: [stkr]
+    # stkrw is Windows only, so Linux and macOS archives hold stkr alone.
+    ids: [stkr, stkrw]
+    allow_different_binary_count: true
     name_template: "stkr_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
     formats: [tar.gz]
     format_overrides:
@@ -57,4 +80,5 @@ changelog:
 
 release:
   prerelease: auto
-  draft: false
+  # Draft until release.yml has added the setup.exe files and their checksums.
+  draft: true
