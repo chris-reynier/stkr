@@ -14,7 +14,11 @@ import (
 	"testing"
 )
 
-var binPath string
+var (
+	binPath string
+	// toolDir holds the binaries built for the run (removed at the end).
+	toolDir string
+)
 
 func TestMain(m *testing.M) {
 	os.Exit(realMain(m))
@@ -27,6 +31,7 @@ func realMain(m *testing.M) int {
 		return 1
 	}
 	defer os.RemoveAll(dir)
+	toolDir = dir
 	binPath = filepath.Join(dir, "stkr")
 	if runtime.GOOS == "windows" {
 		binPath += ".exe"

@@ -19,3 +19,7 @@ func platformSignalInstance(string, bool) error {
 func platformOpen(string) error { return domain.New(domain.ErrUnavailable, UnsupportedMessage) }
 
 func platformConfirm(string, string) bool { return false }
+
+func newPlatformHeadlessTray(string) (Tray, error) {
+	return nil, domain.New(domain.ErrUnavailable, UnsupportedMessage)
+}
