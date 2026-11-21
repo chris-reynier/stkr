@@ -27,6 +27,16 @@ linters:
           deny:
             - pkg: github.com/chris-reynier/stkr/internal/store
               desc: only internal/service may import internal/store
+        stkrw-thin:
+          # The desktop program is a thin main around internal/desktop.
+          list-mode: strict
+          files:
+            - "**/cmd/stkrw/**"
+          allow:
+            - $gostd
+            - github.com/chris-reynier/stkr/internal/desktop
+            - github.com/chris-reynier/stkr/internal/app
+            - github.com/chris-reynier/stkr/internal/buildinfo
     gosec:
       excludes:
         # exec.Command with an explicit argv and no shell is allowed.

@@ -1,0 +1,25 @@
+STKR server not reachable  (disabled)
+----
+Switch to >  (disabled)
+  Manage projects...  {open:/ui/settings}
+Stop  {stop}  (disabled)
+----
+Capture idea...  {open:/ui/ideas}  (disabled)
+Save clipboard as bookmark  {bookmark-clipboard}  (disabled)
+----
+Start day  {start-day}  (disabled)
+Close day  {close-day}  (disabled)
+Import answer from clipboard  {import-clipboard}  (disabled)
+----
+Open >  (disabled)
+  Today  {open:/ui/today}
+  Week  {open:/ui/week}
+  Agents  {open:/ui/agents}
+  Ideas  {open:/ui/ideas}
+  Links  {open:/ui/links}
+  Settings  {open:/ui/settings}
+Data folder  {folder:data}
+Logs folder  {folder:logs}
+----
+About STKR 0.2.0  {about}
+Quit  {quit}
