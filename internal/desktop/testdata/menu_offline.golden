@@ -1,10 +1,13 @@
 STKR server not reachable  (disabled)
 ----
+Show panel  {show-panel}  (disabled)
+Open STKR  {open-app}  (disabled)
+----
 Switch to >  (disabled)
   Manage projects...  {open:/ui/settings}
 Stop  {stop}  (disabled)
 ----
-Capture idea...  {open:/ui/ideas}  (disabled)
+Capture idea...  {capture-idea}  (disabled)
 Save clipboard as bookmark  {bookmark-clipboard}  (disabled)
 ----
 Start day  {start-day}  (disabled)
@@ -18,6 +21,7 @@ Open >  (disabled)
   Ideas  {open:/ui/ideas}
   Links  {open:/ui/links}
   Settings  {open:/ui/settings}
+[x] Keep panel on top  {pin-panel}
 Data folder  {folder:data}
 Logs folder  {folder:logs}
 ----

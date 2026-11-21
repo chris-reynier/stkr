@@ -60,7 +60,7 @@ func TestMenuGolden(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			golden(t, tt.name, RenderMenu(BuildMenu(tt.st, "0.2.0")))
+			golden(t, tt.name, RenderMenu(BuildMenu(tt.st, MenuOptions{Version: "0.2.0", PanelOnTop: true})))
 		})
 	}
 }
@@ -76,7 +76,7 @@ func TestMenuEveryActionIsKnown(t *testing.T) {
 			walk(it.Children)
 		}
 	}
-	walk(BuildMenu(fixtureStatus(), "0.2.0"))
+	walk(BuildMenu(fixtureStatus(), MenuOptions{Version: "0.2.0"}))
 	a := NewApp(Options{Tray: &fakeTray{}})
 	for _, id := range ids {
 		if id == ActQuit {

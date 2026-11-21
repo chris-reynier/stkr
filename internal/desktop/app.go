@@ -16,6 +16,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/chris-reynier/stkr/internal/hotkey"
 	"github.com/chris-reynier/stkr/internal/server"
 )
 
@@ -25,6 +26,9 @@ type Tray interface {
 	Run(h Handler) error
 	SetIcon(is IconState, tooltip string)
 	Notify(n Notice)
+	// SetHotkey registers the global hotkey on the tray thread and reports
+	// the result (nil, or why another program holds the key) to done.
+	SetHotkey(k hotkey.Key, done func(error))
 	Quit()
 }
 
@@ -33,8 +37,13 @@ type Tray interface {
 type Handler interface {
 	// Ready is called once the icon exists.
 	Ready()
-	// Activate is a left click on the icon, or another launch of stkrw.
+	// Activate is a left click on the icon: it toggles the panel.
 	Activate()
+	// Show is another launch of stkrw: it shows the panel.
+	Show()
+	// Hotkey is the global hotkey: it toggles the panel with the idea box
+	// focused.
+	Hotkey()
 	// Menu returns the menu to show on a right click.
 	Menu() []MenuItem
 	// Select runs the menu item with the given id.
@@ -77,6 +86,17 @@ type Options struct {
 	// Open opens a URL in the browser or a folder in the file manager.
 	Open   func(target string) error
 	Logger *slog.Logger
+	// Windows builds the panel and app windows. Nil (or WebView2 missing)
+	// makes every window action open the page in the browser instead.
+	Windows WindowsFactory
+	// PanelOnTop is the saved "keep the panel on top" state; SavePanelOnTop
+	// stores a change in the configuration file.
+	PanelOnTop     bool
+	SavePanelOnTop func(on bool) error
+	// Hotkey is the global hotkey text (empty = none).
+	Hotkey string
+	// OpenPanelOnStart shows the panel once the server is reachable.
+	OpenPanelOnStart bool
 }
 
 // App is the tray application.
@@ -94,6 +114,12 @@ type App struct {
 	hosted Hosted
 	status *Status
 	watch  Watcher
+
+	win        Windows
+	winChecked bool
+	winBroken  bool
+	panelOnTop bool
+	startShown bool
 }
 
 // NewApp builds an App. Call Run.
@@ -105,7 +131,11 @@ func NewApp(opts Options) *App {
 		opts.Logger = slog.Default()
 	}
 	ctx, cancel := context.WithCancel(context.Background())
-	return &App{opts: opts, log: opts.Logger, ctx: ctx, cancel: cancel, refresh: make(chan struct{}, 1)}
+	a := &App{opts: opts, log: opts.Logger, ctx: ctx, cancel: cancel, refresh: make(chan struct{}, 1), panelOnTop: opts.PanelOnTop}
+	if opts.Windows != nil {
+		a.win = opts.Windows(WindowCallbacks{Select: a.Select, Failed: a.windowsFailed})
+	}
+	return a
 }
 
 // Run shows the tray icon and blocks until Quit. A hosted server is then
@@ -113,6 +143,9 @@ func NewApp(opts Options) *App {
 func (a *App) Run() error {
 	err := a.opts.Tray.Run(a)
 	a.cancel()
+	if a.win != nil {
+		a.win.Close()
+	}
 	a.wg.Wait()
 	a.mu.Lock()
 	h := a.hosted
@@ -132,6 +165,7 @@ func (a *App) Run() error {
 // Ready starts connecting and polling.
 func (a *App) Ready() {
 	a.opts.Tray.SetIcon(IconFor(nil), "STKR - starting")
+	a.setupHotkey()
 	a.wg.Add(1)
 	go func() {
 		defer a.wg.Done()
@@ -190,6 +224,13 @@ func (a *App) tick() {
 		return
 	}
 	a.setStatus(&st)
+	a.mu.Lock()
+	first := a.opts.OpenPanelOnStart && !a.startShown
+	a.startShown = a.startShown || first
+	a.mu.Unlock()
+	if first {
+		a.Select(ActShowPanel)
+	}
 }
 
 // Decide probes the configured port: a STKR server there means attach, no
@@ -282,14 +323,20 @@ func (a *App) Mode() Mode {
 	return a.mode
 }
 
-// Activate opens the Today page (the panel replaces it later).
+// Activate toggles the panel (left click on the icon).
 func (a *App) Activate() { a.Select(ActOpenPanel) }
+
+// Show shows the panel (a second launch of stkrw).
+func (a *App) Show() { a.Select(ActShowPanel) }
+
+// Hotkey toggles the panel with the idea box focused.
+func (a *App) Hotkey() { a.Select(ActHotkey) }
 
 // Menu builds the menu from the last status.
 func (a *App) Menu() []MenuItem {
 	a.mu.Lock()
 	defer a.mu.Unlock()
-	return BuildMenu(a.status, a.opts.Version)
+	return BuildMenu(a.status, MenuOptions{Version: a.opts.Version, PanelOnTop: a.panelOnTop})
 }
 
 // Select runs a menu action in the background and reports its result in a
@@ -342,6 +389,13 @@ func (a *App) do(id string) (string, error) {
 	c, mode, st := a.client, a.mode, a.status
 	a.mu.Unlock()
 	switch id {
+	case ActPinPanel:
+		return "", a.togglePin()
+	case ActHidePanel:
+		if a.win != nil {
+			a.win.HidePanel()
+		}
+		return "", nil
 	case ActDataFolder:
 		return "", a.open(a.opts.Home)
 	case ActLogsFolder:
@@ -359,14 +413,31 @@ func (a *App) do(id string) (string, error) {
 	if c == nil {
 		return "", errOffline
 	}
-	if id == ActOpenPanel {
-		return "", a.open(c.URL(pageToday))
+	switch id {
+	case ActOpenPanel:
+		return "", a.panel(c, true, false)
+	case ActShowPanel:
+		return "", a.panel(c, false, false)
+	case ActCaptureIdea:
+		return "", a.panel(c, false, true)
+	case ActHotkey:
+		return "", a.panel(c, true, true)
+	case ActOpenApp:
+		return "", a.app(c, pageToday)
 	}
 	if path, ok := strings.CutPrefix(id, prefixOpen); ok {
 		if !strings.HasPrefix(path, "/ui/") {
 			return "", fmt.Errorf("unknown page %q", path)
 		}
-		return "", a.open(c.URL(path))
+		return "", a.app(c, path)
+	}
+	if _, ok := strings.CutPrefix(id, prefixURL); ok {
+		// Another site always opens in the default browser, never in a window.
+		b, ok := ParseBridge(id)
+		if !ok {
+			return "", errors.New("unknown address")
+		}
+		return "", a.open(strings.TrimPrefix(b.Action, prefixURL))
 	}
 	if ctxID, ok := strings.CutPrefix(id, prefixSwitch); ok {
 		res, err := c.Post(a.ctx, "/api/switch/"+url.PathEscape(ctxID))
@@ -449,4 +520,123 @@ func importText(res map[string]any) string {
 	num := func(k string) int { n, _ := res[k].(float64); return int(n) }
 	msg := fmt.Sprintf("Imported: %d new item(s), %d done, %d top priorities.", num("items_created"), num("items_done"), num("tops_saved"))
 	return withWarnings(msg, res)
+}
+
+// pagePanel is the compact page shown in the panel window.
+const pagePanel = "/ui/panel"
+
+// missingRuntimeText is the notification shown once when WebView2 is absent.
+const missingRuntimeText = "Microsoft Edge WebView2 is not installed, so the panel cannot open. STKR opens its pages in your browser instead. Install the WebView2 Runtime from Microsoft to use the panel."
+
+// windowsUsable reports whether the windows can be shown. The first call
+// asks the windows whether WebView2 exists and notifies once if it does not.
+func (a *App) windowsUsable() bool {
+	a.mu.Lock()
+	if a.win == nil || a.winBroken {
+		a.mu.Unlock()
+		return false
+	}
+	check := !a.winChecked
+	a.winChecked = true
+	a.mu.Unlock()
+	if !check {
+		return true
+	}
+	if err := a.win.Available(); err != nil {
+		a.markBroken(err)
+		return false
+	}
+	return true
+}
+
+// markBroken switches every window action to the browser and says so once.
+func (a *App) markBroken(err error) {
+	a.mu.Lock()
+	first := !a.winBroken
+	a.winBroken = true
+	a.mu.Unlock()
+	if first {
+		a.log.Warn("windows unavailable, using the browser", "err_kind", errKind(err))
+		a.notify(Notice{Title: "STKR", Text: missingRuntimeText, Error: true})
+	}
+}
+
+// windowsFailed is called when a window could not be created after
+// WebView2 reported itself as present. The page the user asked for opens in
+// the browser instead.
+func (a *App) windowsFailed(err error) {
+	a.markBroken(err)
+	a.mu.Lock()
+	c := a.client
+	a.mu.Unlock()
+	if c != nil {
+		if oerr := a.open(c.URL(pageToday)); oerr != nil {
+			a.log.Warn("cannot open the page", "err_kind", errKind(oerr))
+		}
+	}
+}
+
+// panel shows or toggles the panel; without windows it opens Today (or the
+// Ideas page for the capture actions) in the browser.
+func (a *App) panel(c *Client, toggle, focusIdea bool) error {
+	if !a.windowsUsable() {
+		if focusIdea {
+			return a.open(c.URL(pageIdeas))
+		}
+		return a.open(c.URL(pageToday))
+	}
+	if toggle {
+		a.win.TogglePanel(c.URL(pagePanel), focusIdea)
+	} else {
+		a.win.ShowPanel(c.URL(pagePanel), focusIdea)
+	}
+	return nil
+}
+
+// app opens a page of the UI in the app window, or in the browser.
+func (a *App) app(c *Client, path string) error {
+	if !a.windowsUsable() {
+		return a.open(c.URL(path))
+	}
+	a.win.ShowApp(c.URL(path))
+	return nil
+}
+
+// togglePin flips "keep the panel on top", applies it and saves it.
+func (a *App) togglePin() error {
+	a.mu.Lock()
+	on := !a.panelOnTop
+	a.panelOnTop = on
+	a.mu.Unlock()
+	if a.win != nil {
+		a.win.SetPanelOnTop(on)
+	}
+	if a.opts.SavePanelOnTop != nil {
+		if err := a.opts.SavePanelOnTop(on); err != nil {
+			return fmt.Errorf("the setting could not be saved: %w", err)
+		}
+	}
+	return nil
+}
+
+// setupHotkey registers the global hotkey; a key that is already taken by
+// another program is reported in a notification.
+func (a *App) setupHotkey() {
+	k, err := hotkey.Parse(a.opts.Hotkey)
+	if err != nil {
+		a.log.Warn("invalid hotkey in the configuration")
+		a.notify(Notice{Title: "STKR", Error: true, Text: err.Error() + ". Fix desktop.hotkey in Settings."})
+		return
+	}
+	if k.IsZero() {
+		return
+	}
+	a.opts.Tray.SetHotkey(k, func(err error) {
+		if err == nil {
+			return
+		}
+		a.log.Warn("hotkey not registered", "err_kind", "register")
+		a.notify(Notice{Title: "STKR", Error: true, Text: fmt.Sprintf(
+			"The hotkey %s could not be registered, another program probably uses it. Change desktop.hotkey in Settings.", k)})
+	})
 }

@@ -8,6 +8,7 @@ import (
 	"io"
 	"log/slog"
 	"path/filepath"
+	"strconv"
 	"sync"
 	"time"
 
@@ -28,6 +29,7 @@ var (
 	acquireInstance = platformAcquireInstance
 	signalInstance  = platformSignalInstance
 	openTarget      = platformOpen
+	newWindows      = platformWindowsFactory
 )
 
 // Main runs the desktop app and returns the process exit code: 0 after Quit
@@ -105,6 +107,10 @@ func Main(args []string, stderr io.Writer, version string) int {
 		Poll:          time.Duration(cfg.Desktop.PollSeconds) * time.Second,
 		Notifications: cfg.Desktop.Notifications,
 		Tray:          tray, Host: host.start, Open: openTarget, Logger: lg,
+		Windows:        newWindows(home, cfg.Desktop.PanelOnTop, lg),
+		PanelOnTop:     cfg.Desktop.PanelOnTop,
+		SavePanelOnTop: func(on bool) error { return savePanelOnTop(home, on) },
+		Hotkey:         cfg.Desktop.Hotkey, OpenPanelOnStart: cfg.Desktop.OpenPanelOnStart,
 	})
 	lg.Info("desktop started", "version", version, "port", cfg.Port)
 	if err := a.Run(); err != nil {
@@ -152,4 +158,18 @@ func (h *serviceHost) close() {
 		}
 		h.svc, h.closeFn = nil, nil
 	}
+}
+
+// savePanelOnTop stores the "keep the panel on top" state in config.yaml,
+// keeping every other setting as the file has it.
+func savePanelOnTop(home string, on bool) error {
+	path := config.Path(home)
+	cfg, _, err := config.Load(path)
+	if err != nil {
+		return err
+	}
+	if err := cfg.Set("desktop.panel_on_top", strconv.FormatBool(on)); err != nil {
+		return err
+	}
+	return config.Save(path, cfg)
 }

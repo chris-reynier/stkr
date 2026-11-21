@@ -18,6 +18,7 @@ import (
 
 	"github.com/chris-reynier/stkr/internal/config"
 	"github.com/chris-reynier/stkr/internal/domain"
+	"github.com/chris-reynier/stkr/internal/hotkey"
 	"github.com/chris-reynier/stkr/internal/server"
 )
 
@@ -27,9 +28,12 @@ type fakeTray struct {
 	icons   []IconState
 	tips    []string
 	notices []Notice
-	quit    chan struct{}
-	once    sync.Once
-	ready   chan struct{}
+	hotkeys []hotkey.Key
+	// hotkeyErr is what SetHotkey reports.
+	hotkeyErr error
+	quit      chan struct{}
+	once      sync.Once
+	ready     chan struct{}
 }
 
 func newFakeTray() *fakeTray {
@@ -54,6 +58,15 @@ func (f *fakeTray) Notify(n Notice) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.notices = append(f.notices, n)
+}
+
+// SetHotkey records the key and answers with hotkeyErr.
+func (f *fakeTray) SetHotkey(k hotkey.Key, done func(error)) {
+	f.mu.Lock()
+	f.hotkeys = append(f.hotkeys, k)
+	err := f.hotkeyErr
+	f.mu.Unlock()
+	done(err)
 }
 
 func (f *fakeTray) Quit() { f.once.Do(func() { close(f.quit) }) }

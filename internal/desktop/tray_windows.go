@@ -14,6 +14,8 @@ import (
 	"unsafe"
 
 	"golang.org/x/sys/windows"
+
+	"github.com/chris-reynier/stkr/internal/hotkey"
 )
 
 const platformSupported = true
@@ -45,6 +47,8 @@ var (
 	procCreateIconIndirect       = user32.NewProc("CreateIconIndirect")
 	procDestroyIcon              = user32.NewProc("DestroyIcon")
 	procSetDpiAwarenessContext   = user32.NewProc("SetProcessDpiAwarenessContext")
+	procRegisterHotKey           = user32.NewProc("RegisterHotKey")
+	procUnregisterHotKey         = user32.NewProc("UnregisterHotKey")
 	procShellNotifyIconW         = shell32.NewProc("Shell_NotifyIconW")
 	procCreateDIBSection         = gdi32.NewProc("CreateDIBSection")
 	procCreateBitmap             = gdi32.NewProc("CreateBitmap")
@@ -62,6 +66,9 @@ const (
 	wmTrayIcon    = wmApp + 1 // icon callback
 	wmTrayCall    = wmApp + 2 // run queued calls on the tray thread
 	wmTrayShow    = wmApp + 3 // another launch asks to show
+	wmHotKey      = 0x0312
+	hotkeyID      = 1
+	modNoRepeat   = 0x4000
 
 	ninSelect    = 0x0400
 	ninKeySelect = 0x0401
@@ -178,6 +185,7 @@ type winTray struct {
 	tip            string
 	added          bool
 	menuIDs        map[uint32]string
+	hotkeyOn       bool
 }
 
 // The window procedure is created once per process (Go never frees
@@ -306,6 +314,25 @@ func (t *winTray) Notify(n Notice) {
 	})
 }
 
+// SetHotkey registers (or replaces) the global hotkey on the tray thread: a
+// hotkey belongs to the thread that registered it and arrives as WM_HOTKEY in
+// its message loop.
+func (t *winTray) SetHotkey(k hotkey.Key, done func(error)) {
+	t.post(func() {
+		if t.hotkeyOn {
+			_, _, _ = procUnregisterHotKey.Call(uintptr(t.hwnd), hotkeyID)
+			t.hotkeyOn = false
+		}
+		r, _, err := procRegisterHotKey.Call(uintptr(t.hwnd), hotkeyID, uintptr(k.Mods|modNoRepeat), uintptr(k.VK))
+		if r == 0 {
+			done(fmt.Errorf("register hotkey: %w", err))
+			return
+		}
+		t.hotkeyOn = true
+		done(nil)
+	})
+}
+
 func (t *winTray) Quit() {
 	t.mu.Lock()
 	hwnd := t.hwnd
@@ -377,13 +404,20 @@ func (t *winTray) wndProc(hwnd windows.HWND, msg uint32, _, lp uintptr) (uintptr
 		t.runQueue()
 		return 0, true
 	case msg == wmTrayShow:
-		t.h.Activate()
+		t.h.Show()
+		return 0, true
+	case msg == wmHotKey:
+		t.h.Hotkey()
 		return 0, true
 	case msg == t.taskbarCreated && msg != 0:
 		t.addIcon()
 		t.applyIcon(t.iconState, t.tip)
 		return 0, true
 	case msg == wmDestroy:
+		if t.hotkeyOn {
+			_, _, _ = procUnregisterHotKey.Call(uintptr(hwnd), hotkeyID)
+			t.hotkeyOn = false
+		}
 		d := t.nid()
 		notifyIcon(nimDelete, &d)
 		if t.icon != 0 {

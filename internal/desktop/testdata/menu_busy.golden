@@ -1,5 +1,8 @@
 Acme & Co portal - 3h05 (idle?)  (disabled)
 ----
+Show panel  {show-panel}
+Open STKR  {open-app}
+----
 Switch to >
   [x] Acme & Co portal  {switch:acme}
   Meeting  {switch:meeting}
@@ -8,7 +11,7 @@ Switch to >
   Manage projects...  {open:/ui/settings}
 Stop  {stop}
 ----
-Capture idea...  {open:/ui/ideas}
+Capture idea...  {capture-idea}
 Save clipboard as bookmark  {bookmark-clipboard}
 ----
 Start day  {start-day}
@@ -22,6 +25,7 @@ Open >
   Ideas (3 new)  {open:/ui/ideas}
   Links  {open:/ui/links}
   Settings  {open:/ui/settings}
+[x] Keep panel on top  {pin-panel}
 Data folder  {folder:data}
 Logs folder  {folder:logs}
 ----
