@@ -92,6 +92,9 @@ Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: 
 
 [Run]
 Filename: "{app}\stkrw.exe"; Description: "Launch STKR"; Flags: nowait postinstall skipifsilent
+; An update started from STKR runs this setup silently with /RELAUNCH=1 and
+; expects the app that it closed to come back.
+Filename: "{app}\stkrw.exe"; Parameters: "--after-update"; Flags: nowait skipifdoesntexist; Check: RelaunchRequested
 
 [UninstallDelete]
 Type: files; Name: "{app}\install.json"
@@ -261,6 +264,16 @@ begin
     if not WizardIsTaskSelected('autostart') then
       RegDeleteValue(HKCU, RunKey, 'STKR');
   end;
+end;
+
+// ---- update ----------------------------------------------------------------
+
+// RelaunchRequested is true for a silent run started by STKR's own update
+// (/RELAUNCH=1). A wizard run offers "Launch STKR" instead, and any other
+// silent run (a script, `stkr update` from a terminal) starts nothing.
+function RelaunchRequested: Boolean;
+begin
+  Result := WizardSilent and (ExpandConstant('{param:RELAUNCH|0}') = '1');
 end;
 
 // ---- uninstall -------------------------------------------------------------

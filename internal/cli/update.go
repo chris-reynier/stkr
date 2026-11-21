@@ -32,6 +32,9 @@ type updateOutput struct {
 	Applied  bool   `json:"applied,omitempty"`
 	Restart  bool   `json:"restart_serve,omitempty"`
 	Executed string `json:"executable,omitempty"`
+	// Method is "replace" (program files replaced) or "setup" (the verified
+	// Windows setup was started).
+	Method string `json:"method,omitempty"`
 }
 
 func newUpdateCmd(opts *options) *cobra.Command {
@@ -127,15 +130,31 @@ func newUpdateCmd(opts *options) *cobra.Command {
 			if resolved, err := filepath.EvalSymlinks(exe); err == nil {
 				exe = resolved
 			}
-			if err := u.Apply(ctx, rel, exe); err != nil {
+			staged, err := u.Fetch(ctx, rel, exe, update.FetchOptions{})
+			if err != nil {
+				return err
+			}
+			if staged.Method == update.MethodSetup && !opts.json {
+				fmt.Fprintf(out, "This copy was installed by the STKR setup: running the verified setup for %s silently.\n"+
+					"It closes the STKR desktop app, updates stkr and stkrw, and keeps your data.\n", rel.Tag)
+			}
+			if err := staged.Commit(ctx); err != nil {
+				staged.Discard()
 				return err
 			}
 			running := serveRunning(ctx, svc)
 			if opts.json {
 				return printJSON(out, updateOutput{Result: update.Result{Current: cur, Latest: rel.Tag, URL: rel.URL},
-					Applied: true, Restart: running, Executed: exe})
+					Applied: true, Restart: running, Executed: exe, Method: staged.Method})
+			}
+			if staged.Method == update.MethodSetup {
+				fmt.Fprintf(out, "started the setup for stkr %s; it finishes in the background. Start the desktop app again when it is done.\n", rel.Tag)
+				return nil
 			}
 			fmt.Fprintf(out, "updated stkr %s -> %s\n", cur, rel.Tag)
+			if others := otherNames(staged.Files, exe); len(others) > 0 {
+				fmt.Fprintf(out, "also updated: %s\n", strings.Join(others, ", "))
+			}
 			if running {
 				fmt.Fprintln(out, "stkr serve is running: restart `stkr serve` to use the new version")
 			}
@@ -181,4 +200,15 @@ func (o *options) executable() (string, error) {
 		return o.exePath, nil
 	}
 	return os.Executable()
+}
+
+// otherNames lists the base names of the updated files other than exe.
+func otherNames(files []string, exe string) []string {
+	var out []string
+	for _, f := range files {
+		if f != exe {
+			out = append(out, filepath.Base(f))
+		}
+	}
+	return out
 }
