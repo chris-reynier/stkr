@@ -43,6 +43,8 @@ Open Settings, Apps, Installed apps, find STKR and choose Uninstall. It removes 
 3. Put both programs in a folder you can write to, for example `C:\Tools\stkr`, and add that folder to Path (Settings, System, About, Advanced system settings, Environment Variables).
 4. Open a new terminal and run `stkr version`.
 
+If SmartScreen asks before every run of the unpacked programs, or you want a copy with no installer that you build yourself, see [Portable](portable.md).
+
 ### Linux and macOS
 
 1. Download the archive for your system: `stkr_<version>_linux_amd64.tar.gz` (or `arm64`), `stkr_<version>_darwin_arm64.tar.gz` (Apple silicon) or `darwin_amd64` (Intel).
