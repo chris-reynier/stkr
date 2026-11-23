@@ -3,6 +3,7 @@
 STKR is a local-first task stack manager. These pages explain how to use it. If you are new, read Install, Getting started, Time tracking and Web UI first.
 
 - [Install](install.md): download, unpack and run a release.
+- [Portable](portable.md): build a no-installer copy on your own PC (no SmartScreen prompt) and set it up by hand.
 - [Getting started](getting-started.md): build, run, and find your data.
 - [Update](update.md): check for and install new versions.
 - [Time tracking](time-tracking.md): switch contexts, read your day and week, confirm idle blocks.
