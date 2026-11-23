@@ -16,6 +16,24 @@ Which key calls which endpoint and which image it shows. All URLs are on `http:/
 | Ideas inbox | none | `GET /img/key/ideas-inbox.png` | available |
 | Bookmark | `POST /api/bookmark/from-clipboard` | none | available |
 | Meeting action or decision | `POST /api/idea` with `{"text":"...","type":"action"}` (or `decision`) | none | available |
+| Previous Day Review | plugin: `GET /api/review/context` (or `GET /api/review/prompt`), builds the prompt, copies it | none | available |
+| Import Review | `POST /api/import/clipboard` (or the plugin posts the approved text to `POST /api/import`) | `GET /img/key/import.png` | available |
+| Activity sync | plugin, in the background: `POST /api/activity/events` | none | available |
+
+## Daily review workflow
+
+The review keys keep each change visible and separate: reading the review metadata changes nothing, and only the Import Review key writes.
+
+| Key | What it does |
+|---|---|
+| Previous Day Review | The plugin resolves the previous working day itself (or omits `date`, and STKR picks it: see [review-context.md](review-context.md#date-selection)), calls `GET /api/review/context?date=...`, adds its own lock and application telemetry, builds the prompt and copies it. A plugin without its own prompt can use `GET /api/review/prompt?date=...` (the STKR template) or `POST /api/review/prompt` (STKR copies it). |
+| Start Day | `POST /api/day/start` (it also switches to `planning`). |
+| Close Day | `POST /api/close/prompt?paste=1`. |
+| Import Review | The user copies the assistant's answer, then presses the key: `POST /api/import/clipboard`. The answer must hold one `stkr-review v1` block ([import-fences.md](import-fences.md#review-blocks-stkr-review-v1)). A plugin that shows the records for approval first calls `POST /api/import/preview` with the text, then `POST /api/import` with the approved text. |
+| Stop Tracking | `POST /api/stop`. |
+| Next Agent | `POST /api/agents/next/go`. |
+
+The plugin sends its activity snapshot with `POST /api/activity/events` ([activity-events.md](activity-events.md)) whenever it likes; resending the whole day is safe. STKR keeps working when the plugin is not running, and the review works without activity (it then lists `lock_history` and `application_activity` as missing).
 
 All images are 144x144 PNG, generated locally, `Cache-Control: no-store`.
 

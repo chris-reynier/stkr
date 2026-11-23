@@ -60,10 +60,24 @@ type Parsed struct {
 	Warnings []string
 	// Ignored counts record lines that were not usable.
 	Ignored int
+	// Reviews are the accepted stkr-review blocks, in text order. A block
+	// with a malformed line is rejected as a whole (see BlocksRejected).
+	Reviews []ReviewBlock
+	// BlocksRejected counts stkr-review blocks dropped as a whole.
+	BlocksRejected int
 }
 
 // Valid reports whether at least one usable record was found.
-func (p Parsed) Valid() bool { return len(p.Tops)+len(p.Items)+len(p.Done) > 0 }
+func (p Parsed) Valid() bool { return len(p.Tops)+len(p.Items)+len(p.Done)+p.ReviewRecords() > 0 }
+
+// ReviewRecords is the number of records in the accepted review blocks.
+func (p Parsed) ReviewRecords() int {
+	n := 0
+	for _, b := range p.Reviews {
+		n += len(b.Records)
+	}
+	return n
+}
 
 // Fingerprint identifies an item: the first 16 hex digits of
 // sha256(lower(type|project|normalized summary)).
@@ -85,6 +99,7 @@ const (
 	blockNone blockKind = iota
 	blockBrief
 	blockClose
+	blockReview
 )
 
 type parser struct {
@@ -100,7 +115,8 @@ func (ps *parser) warn(format string, a ...any) {
 }
 
 // Parse extracts import records from text. It looks for fenced blocks whose
-// info string is "stkr-brief v1" or "stkr-close v1". Without any such block,
+// info string is "stkr-brief v1", "stkr-close v1" or "stkr-review v1" (see
+// review.go). Without any such block,
 // plain pipe-separated lines are accepted with a warning. Parse never fails;
 // an unusable input yields a Parsed that is not Valid.
 func Parse(text string) Parsed {
@@ -117,14 +133,23 @@ func Parse(text string) Parsed {
 		fenceLen  int
 		fenceKind = blockNone
 	)
+	var review *reviewState
 	for i, raw := range lines {
 		line := strings.TrimSpace(raw)
 		if inFence {
 			if isFenceClose(line, fenceCh, fenceLen) {
 				inFence = false
+				if review != nil {
+					ps.endReview(review, true)
+					review = nil
+				}
 				continue
 			}
-			if fenceKind != blockNone {
+			switch fenceKind {
+			case blockReview:
+				ps.reviewLine(review, line, i+1)
+			case blockNone:
+			default:
 				ps.record(line, fenceKind, i+1)
 			}
 			continue
@@ -144,6 +169,8 @@ func Parse(text string) Parsed {
 			kind = blockBrief
 		case "stkr-close":
 			kind = blockClose
+		case "stkr-review":
+			kind = blockReview
 		default:
 			continue
 		}
@@ -159,9 +186,15 @@ func Parse(text string) Parsed {
 			continue
 		}
 		fenceKind = kind
+		if kind == blockReview {
+			review = &reviewState{start: i + 1}
+		}
 	}
 	if inFence && fenceKind != blockNone {
 		ps.warn("a stkr block was not closed; read to the end of the text")
+	}
+	if review != nil {
+		ps.endReview(review, false)
 	}
 
 	if blocks == 0 {

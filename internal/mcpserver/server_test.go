@@ -314,8 +314,8 @@ func TestToolListGoldenAndContract(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(tl.Tools) != 12 {
-		t.Fatalf("want 12 tools, got %d", len(tl.Tools))
+	if len(tl.Tools) != 16 {
+		t.Fatalf("want 16 tools, got %d", len(tl.Tools))
 	}
 	golden, _ := json.MarshalIndent(tl.Tools, "", "  ")
 	golden = append(golden, '\n')

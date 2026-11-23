@@ -16,9 +16,9 @@ import (
 // empty Day with that date and no error.
 func (s *Store) GetDay(ctx context.Context, date string) (domain.Day, error) {
 	d := domain.Day{Date: date}
-	var t1, t2, t3 sql.NullString
+	var t1, t2, t3, savedAt sql.NullString
 	var brief, closed sql.NullInt64
-	err := s.q.QueryRowContext(ctx, sqlGetDay, date).Scan(&d.Date, &t1, &t2, &t3, &brief, &closed)
+	err := s.q.QueryRowContext(ctx, sqlGetDay, date).Scan(&d.Date, &t1, &t2, &t3, &brief, &closed, &savedAt)
 	if errors.Is(err, sql.ErrNoRows) {
 		return d, nil
 	}
@@ -27,13 +27,20 @@ func (s *Store) GetDay(ctx context.Context, date string) (domain.Day, error) {
 	}
 	d.Top = [3]string{t1.String, t2.String, t3.String}
 	d.BriefSaved, d.CloseSaved = brief.Int64 != 0, closed.Int64 != 0
+	if d.CloseSavedAt, err = parseOptTS(savedAt); err != nil {
+		return d, fmt.Errorf("get day %s: %w", date, err)
+	}
 	return d, nil
 }
 
 // UpsertDay writes d.
 func (s *Store) UpsertDay(ctx context.Context, d domain.Day) error {
+	savedAt := sql.NullString{}
+	if !d.CloseSavedAt.IsZero() {
+		savedAt = nullStr(FormatTS(d.CloseSavedAt))
+	}
 	_, err := s.q.ExecContext(ctx, sqlUpsertDay, d.Date, nullStr(d.Top[0]), nullStr(d.Top[1]), nullStr(d.Top[2]),
-		b2i(d.BriefSaved), b2i(d.CloseSaved))
+		b2i(d.BriefSaved), b2i(d.CloseSaved), savedAt)
 	if err != nil {
 		return fmt.Errorf("upsert day %s: %w", d.Date, err)
 	}
@@ -374,4 +381,13 @@ func (s *Store) SetItemStatus(ctx context.Context, id int64, status string) erro
 		return fmt.Errorf("set item %d status: %w", id, err)
 	}
 	return mustAffect(res, "item", id)
+}
+
+// GetItemByFingerprint returns the item with fingerprint fp, or ErrNotFound.
+func (s *Store) GetItemByFingerprint(ctx context.Context, fp string) (domain.Item, error) {
+	it, err := scanItem(s.q.QueryRowContext(ctx, sqlGetItemByFP, fp))
+	if errors.Is(err, sql.ErrNoRows) {
+		return it, notFound("item", fp)
+	}
+	return it, err
 }

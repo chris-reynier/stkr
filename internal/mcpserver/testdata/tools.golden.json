@@ -137,6 +137,180 @@
       "idempotentHint": false,
       "openWorldHint": false,
       "readOnlyHint": true,
+      "title": "Activity summary of a day"
+    },
+    "description": "Summarise the local activity of one day: time per lock state, category, application and workspace, and the locked, idle and break periods.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "date": {
+          "description": "YYYY-MM-DD, today or yesterday; default today",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "name": "get_activity_summary",
+    "outputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "active_seconds": {
+          "type": "integer"
+        },
+        "apps": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "context_id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "seconds": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "name",
+              "seconds"
+            ],
+            "type": "object"
+          },
+          "type": [
+            "null",
+            "array"
+          ]
+        },
+        "break_seconds": {
+          "type": "integer"
+        },
+        "categories": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "context_id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "seconds": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "name",
+              "seconds"
+            ],
+            "type": "object"
+          },
+          "type": [
+            "null",
+            "array"
+          ]
+        },
+        "date": {
+          "type": "string"
+        },
+        "events": {
+          "type": "integer"
+        },
+        "first": {
+          "type": "string"
+        },
+        "idle_seconds": {
+          "type": "integer"
+        },
+        "last": {
+          "type": "string"
+        },
+        "locked_seconds": {
+          "type": "integer"
+        },
+        "periods": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "duration_seconds": {
+                "type": "integer"
+              },
+              "end": {
+                "type": "string"
+              },
+              "start": {
+                "type": "string"
+              },
+              "state": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "start",
+              "end",
+              "state",
+              "duration_seconds"
+            ],
+            "type": "object"
+          },
+          "type": [
+            "null",
+            "array"
+          ]
+        },
+        "periods_dropped": {
+          "type": "integer"
+        },
+        "private_seconds": {
+          "type": "integer"
+        },
+        "workspaces": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "context_id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "seconds": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "name",
+              "seconds"
+            ],
+            "type": "object"
+          },
+          "type": [
+            "null",
+            "array"
+          ]
+        }
+      },
+      "required": [
+        "date",
+        "events",
+        "active_seconds",
+        "idle_seconds",
+        "locked_seconds",
+        "break_seconds",
+        "private_seconds",
+        "categories",
+        "apps",
+        "workspaces",
+        "periods"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "annotations": {
+      "idempotentHint": false,
+      "openWorldHint": false,
+      "readOnlyHint": true,
       "title": "Day report"
     },
     "description": "Return the time report of one day: events, blocks, gaps and totals per context. Notes of personal and system contexts are removed.",
@@ -467,6 +641,601 @@
         "elapsed_seconds",
         "idle_suspect",
         "today_counted_seconds"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "annotations": {
+      "idempotentHint": false,
+      "openWorldHint": false,
+      "readOnlyHint": true,
+      "title": "Review context of a day"
+    },
+    "description": "Return the privacy-bounded review metadata of one working day: tracked blocks, gaps, totals, open items, new ideas, agents, local activity, close state and the evidence STKR does not have. Without a date it picks the previous working day. Same data as GET /api/review/context.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "date": {
+          "description": "YYYY-MM-DD, not in the future; default the previous working day",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "name": "get_review_context",
+    "outputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "activity": {
+          "additionalProperties": false,
+          "properties": {
+            "active_seconds": {
+              "type": "integer"
+            },
+            "apps": {
+              "items": {
+                "additionalProperties": false,
+                "properties": {
+                  "context_id": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "seconds": {
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "name",
+                  "seconds"
+                ],
+                "type": "object"
+              },
+              "type": [
+                "null",
+                "array"
+              ]
+            },
+            "break_seconds": {
+              "type": "integer"
+            },
+            "categories": {
+              "items": {
+                "additionalProperties": false,
+                "properties": {
+                  "context_id": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "seconds": {
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "name",
+                  "seconds"
+                ],
+                "type": "object"
+              },
+              "type": [
+                "null",
+                "array"
+              ]
+            },
+            "date": {
+              "type": "string"
+            },
+            "events": {
+              "type": "integer"
+            },
+            "first": {
+              "type": "string"
+            },
+            "idle_seconds": {
+              "type": "integer"
+            },
+            "last": {
+              "type": "string"
+            },
+            "locked_seconds": {
+              "type": "integer"
+            },
+            "periods": {
+              "items": {
+                "additionalProperties": false,
+                "properties": {
+                  "duration_seconds": {
+                    "type": "integer"
+                  },
+                  "end": {
+                    "type": "string"
+                  },
+                  "start": {
+                    "type": "string"
+                  },
+                  "state": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "start",
+                  "end",
+                  "state",
+                  "duration_seconds"
+                ],
+                "type": "object"
+              },
+              "type": [
+                "null",
+                "array"
+              ]
+            },
+            "periods_dropped": {
+              "type": "integer"
+            },
+            "private_seconds": {
+              "type": "integer"
+            },
+            "workspaces": {
+              "items": {
+                "additionalProperties": false,
+                "properties": {
+                  "context_id": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "seconds": {
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "name",
+                  "seconds"
+                ],
+                "type": "object"
+              },
+              "type": [
+                "null",
+                "array"
+              ]
+            }
+          },
+          "required": [
+            "date",
+            "events",
+            "active_seconds",
+            "idle_seconds",
+            "locked_seconds",
+            "break_seconds",
+            "private_seconds",
+            "categories",
+            "apps",
+            "workspaces",
+            "periods"
+          ],
+          "type": "object"
+        },
+        "agents": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "context_id": {
+                "type": "string"
+              },
+              "label": {
+                "type": "string"
+              },
+              "state": {
+                "type": "string"
+              },
+              "summary": {
+                "type": "string"
+              },
+              "workspace": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "label",
+              "state"
+            ],
+            "type": "object"
+          },
+          "type": [
+            "null",
+            "array"
+          ]
+        },
+        "basis": {
+          "type": "string"
+        },
+        "blocks": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "confirmed": {
+                "type": "boolean"
+              },
+              "context_id": {
+                "type": "string"
+              },
+              "counted": {
+                "type": "boolean"
+              },
+              "duration_seconds": {
+                "type": "integer"
+              },
+              "end": {
+                "type": "string"
+              },
+              "idle_suspect": {
+                "type": "boolean"
+              },
+              "kind": {
+                "type": "string"
+              },
+              "label": {
+                "type": "string"
+              },
+              "note": {
+                "type": "string"
+              },
+              "private": {
+                "type": "boolean"
+              },
+              "start": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "start",
+              "end",
+              "context_id",
+              "label",
+              "kind",
+              "duration_seconds",
+              "counted",
+              "idle_suspect",
+              "confirmed",
+              "private"
+            ],
+            "type": "object"
+          },
+          "type": [
+            "null",
+            "array"
+          ]
+        },
+        "close": {
+          "additionalProperties": false,
+          "properties": {
+            "due": {
+              "type": "boolean"
+            },
+            "saved": {
+              "type": "boolean"
+            },
+            "saved_at": {
+              "type": [
+                "null",
+                "string"
+              ]
+            }
+          },
+          "required": [
+            "due",
+            "saved",
+            "saved_at"
+          ],
+          "type": "object"
+        },
+        "contexts": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "kind": {
+                "type": "string"
+              },
+              "label": {
+                "type": "string"
+              },
+              "private": {
+                "type": "boolean"
+              },
+              "tempo_ticket": {
+                "type": "string"
+              },
+              "workdir": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "label",
+              "kind",
+              "private"
+            ],
+            "type": "object"
+          },
+          "type": [
+            "null",
+            "array"
+          ]
+        },
+        "date": {
+          "type": "string"
+        },
+        "day_items": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "date": {
+                "type": "string"
+              },
+              "due": {
+                "type": "string"
+              },
+              "fingerprint": {
+                "type": "string"
+              },
+              "id": {
+                "type": "integer"
+              },
+              "origin": {
+                "type": "string"
+              },
+              "project": {
+                "type": "string"
+              },
+              "source": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string"
+              },
+              "summary": {
+                "type": "string"
+              },
+              "type": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "date",
+              "type",
+              "summary",
+              "fingerprint",
+              "status"
+            ],
+            "type": "object"
+          },
+          "type": [
+            "null",
+            "array"
+          ]
+        },
+        "gaps": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "duration_seconds": {
+                "type": "integer"
+              },
+              "end": {
+                "type": "string"
+              },
+              "start": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "start",
+              "end",
+              "duration_seconds"
+            ],
+            "type": "object"
+          },
+          "type": [
+            "null",
+            "array"
+          ]
+        },
+        "missing": {
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "null",
+            "array"
+          ]
+        },
+        "new_ideas": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "type": "integer"
+              },
+              "text": {
+                "type": "string"
+              },
+              "title": {
+                "type": "string"
+              },
+              "ts": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "title"
+            ],
+            "type": "object"
+          },
+          "type": [
+            "null",
+            "array"
+          ]
+        },
+        "open_items": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "date": {
+                "type": "string"
+              },
+              "due": {
+                "type": "string"
+              },
+              "fingerprint": {
+                "type": "string"
+              },
+              "id": {
+                "type": "integer"
+              },
+              "origin": {
+                "type": "string"
+              },
+              "project": {
+                "type": "string"
+              },
+              "source": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string"
+              },
+              "summary": {
+                "type": "string"
+              },
+              "type": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "date",
+              "type",
+              "summary",
+              "fingerprint",
+              "status"
+            ],
+            "type": "object"
+          },
+          "type": [
+            "null",
+            "array"
+          ]
+        },
+        "previous_working_day": {
+          "type": "string"
+        },
+        "timezone": {
+          "type": "string"
+        },
+        "top": {
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "null",
+            "array"
+          ]
+        },
+        "totals": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "context_id": {
+                "type": "string"
+              },
+              "counted_seconds": {
+                "type": "integer"
+              },
+              "exportable": {
+                "type": "boolean"
+              },
+              "kind": {
+                "type": "string"
+              },
+              "label": {
+                "type": "string"
+              },
+              "tempo_ticket": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "context_id",
+              "label",
+              "kind",
+              "exportable",
+              "counted_seconds"
+            ],
+            "type": "object"
+          },
+          "type": [
+            "null",
+            "array"
+          ]
+        },
+        "tracking": {
+          "additionalProperties": false,
+          "properties": {
+            "counted_seconds": {
+              "type": "integer"
+            },
+            "gap_seconds": {
+              "type": "integer"
+            },
+            "idle_suspect_seconds": {
+              "type": "integer"
+            }
+          },
+          "required": [
+            "counted_seconds",
+            "gap_seconds",
+            "idle_suspect_seconds"
+          ],
+          "type": "object"
+        },
+        "weekday": {
+          "type": "string"
+        },
+        "working_day": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "date",
+        "previous_working_day",
+        "basis",
+        "timezone",
+        "weekday",
+        "working_day",
+        "tracking",
+        "blocks",
+        "gaps",
+        "totals",
+        "contexts",
+        "top",
+        "day_items",
+        "open_items",
+        "new_ideas",
+        "agents",
+        "activity",
+        "close",
+        "missing"
       ],
       "type": "object"
     }
@@ -1014,6 +1783,238 @@
       "required": [
         "items",
         "count"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "annotations": {
+      "idempotentHint": false,
+      "openWorldHint": false,
+      "readOnlyHint": true,
+      "title": "Preview an import"
+    },
+    "description": "Check an answer before the user imports it: list the records a stkr-review (or brief/close) block would store, whether each is new, already stored or repeated, and the warnings. Writes nothing; the user approves by importing the text (stkr import, Import Review key).",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "text": {
+          "description": "answer text holding a stkr-review (or stkr-brief / stkr-close) block, max 256 KB",
+          "type": "string"
+        }
+      },
+      "required": [
+        "text"
+      ],
+      "type": "object"
+    },
+    "name": "list_unapproved_review_records",
+    "outputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "blocks_rejected": {
+          "type": "integer"
+        },
+        "done": {
+          "type": "integer"
+        },
+        "format": {
+          "type": "string"
+        },
+        "ignored": {
+          "type": "integer"
+        },
+        "kind": {
+          "type": "string"
+        },
+        "records": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "context": {
+                "type": "string"
+              },
+              "date": {
+                "type": "string"
+              },
+              "fingerprint": {
+                "type": "string"
+              },
+              "known_context": {
+                "type": "boolean"
+              },
+              "line": {
+                "type": "integer"
+              },
+              "private": {
+                "type": "boolean"
+              },
+              "status": {
+                "type": "string"
+              },
+              "text": {
+                "type": "string"
+              },
+              "type": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "date",
+              "type",
+              "context",
+              "text",
+              "fingerprint",
+              "status",
+              "known_context",
+              "private"
+            ],
+            "type": "object"
+          },
+          "type": [
+            "null",
+            "array"
+          ]
+        },
+        "tops": {
+          "type": "integer"
+        },
+        "valid": {
+          "type": "boolean"
+        },
+        "warnings": {
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "null",
+            "array"
+          ]
+        }
+      },
+      "required": [
+        "valid",
+        "format",
+        "records",
+        "tops",
+        "done",
+        "blocks_rejected",
+        "ignored",
+        "warnings"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": false,
+      "title": "Report local activity"
+    },
+    "description": "Store local activity evidence (application category, workspace, lock state, duration). Replays are merged, so the same events may be sent again. One malformed event rejects the whole call. Same rules as POST /api/activity/events.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "events": {
+          "description": "activity events (at most 5000); window titles, URLs and clipboard text are not accepted",
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "app": {
+                "description": "application or executable name (max 64 characters, not a path)",
+                "type": "string"
+              },
+              "category": {
+                "description": "development, meeting, email, administration, browser, break, lock or other",
+                "type": "string"
+              },
+              "context_id": {
+                "description": "STKR context id; default mapped from the workspace",
+                "type": "string"
+              },
+              "duration_seconds": {
+                "description": "duration in whole seconds, 1 to 86400",
+                "type": "integer"
+              },
+              "lock_state": {
+                "description": "active, idle, locked or break",
+                "type": "string"
+              },
+              "ts": {
+                "description": "start time, RFC 3339 with offset",
+                "type": "string"
+              },
+              "workspace": {
+                "description": "workspace name or id, not a path (max 128 characters)",
+                "type": "string"
+              }
+            },
+            "required": [
+              "ts",
+              "app",
+              "category",
+              "duration_seconds",
+              "lock_state"
+            ],
+            "type": "object"
+          },
+          "type": [
+            "null",
+            "array"
+          ]
+        }
+      },
+      "required": [
+        "events"
+      ],
+      "type": "object"
+    },
+    "name": "report_activity_event",
+    "outputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "inserted": {
+          "type": "integer"
+        },
+        "merged": {
+          "type": "integer"
+        },
+        "out_of_range": {
+          "type": "integer"
+        },
+        "pruned": {
+          "type": "integer"
+        },
+        "received": {
+          "type": "integer"
+        },
+        "unchanged": {
+          "type": "integer"
+        },
+        "unmapped": {
+          "type": "integer"
+        },
+        "warnings": {
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "null",
+            "array"
+          ]
+        }
+      },
+      "required": [
+        "received",
+        "inserted",
+        "merged",
+        "unchanged",
+        "out_of_range",
+        "unmapped",
+        "pruned",
+        "warnings"
       ],
       "type": "object"
     }

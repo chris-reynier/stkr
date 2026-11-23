@@ -10,7 +10,7 @@ Only `internal/store` contains SQL, and only `internal/service` imports `interna
 - `schema_migrations(version, applied_at)` records applied versions. Each pending migration runs in its own transaction together with its `schema_migrations` row, so a failed migration leaves nothing behind.
 - Before applying any pending migration to a database that already has tables, the store writes `backups/pre-migrate-<current version>-<UTC time>.db` with `VACUUM INTO`.
 - Opening an up-to-date database applies nothing and writes no backup.
-- `0001_init.sql` creates every table below and the seed contexts. New migrations must be additive where possible.
+- `0001_init.sql` creates the v1 tables and the seed contexts. `0002_review.sql` rebuilds `items` to allow the types `achievement` and `gap` (same rows and ids), adds `days.close_saved_at` and creates `activity_events`. New migrations must be additive where possible.
 
 ## Timestamps
 
@@ -25,8 +25,9 @@ Stored as TEXT, RFC 3339 in UTC with milliseconds: `2026-11-16T08:30:00.000Z`. T
 | `agent_instances` | `id` | Coding-agent windows and their state. |
 | `ideas` | `id` autoincrement | Captured ideas. `status` ∈ new, triaged, done, archived. `ai_state` ∈ pending, done, failed, skipped. |
 | `bookmarks` | `id`; `url` unique | Saved links. `tags` is a comma-separated list. |
-| `items` | `id`; `fingerprint` unique | Actions, decisions, notes, follow-ups and risks. Inserting a known fingerprint is a no-op, so repeated imports never duplicate items. |
-| `days` | `date` | Daily-loop state: three priorities, brief and close markers. |
+| `items` | `id`; `fingerprint` unique | Actions, decisions, notes, follow-ups, risks, achievements and gaps. Inserting a known fingerprint is a no-op, so repeated imports never duplicate items. Review records keep their own `date` and have `origin` `review`. |
+| `days` | `date` | Daily-loop state: three priorities, brief and close markers, `close_saved_at` (first close import). |
+| `activity_events` | `id` (identity hash) | Local activity evidence from a client: `ts`, `app`, `category`, `workspace`, `context_id`, `duration_seconds`, `lock_state`, `received`. Indexed on `ts`. Upserts keep the larger duration. Never feeds time tracking. |
 | `kv` | `key` | Small runtime flags, for example `backup.last_date`. |
 | `schema_migrations` | `version` | Applied migrations. |
 

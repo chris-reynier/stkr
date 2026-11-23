@@ -44,6 +44,8 @@ type Config struct {
 	Update               Update    `yaml:"update"`
 	Bookmarks            Bookmarks `yaml:"bookmarks"`
 	Desktop              Desktop   `yaml:"desktop"`
+	Activity             Activity  `yaml:"activity"`
+	Review               Review    `yaml:"review"`
 	AllowedOrigins       []string  `yaml:"allowed_origins"`
 }
 
@@ -118,6 +120,23 @@ type Desktop struct {
 	Autostart bool `yaml:"autostart"`
 }
 
+// Activity configures local activity evidence (POST /api/activity/events).
+type Activity struct {
+	// Enabled accepts activity events from local clients. When off, the
+	// endpoint answers 503 and stored events are still shown.
+	Enabled bool `yaml:"enabled"`
+	// RetentionDays is how long activity events are kept (1..3650). Older
+	// events are rejected and deleted.
+	RetentionDays int `yaml:"retention_days"`
+}
+
+// Review configures the review context (GET /api/review/context).
+type Review struct {
+	// IncludeWorkspacePaths adds context work folders to the review context.
+	// Off by default: paths stay on this computer.
+	IncludeWorkspacePaths bool `yaml:"include_workspace_paths"`
+}
+
 // Update configures the update check.
 type Update struct {
 	Check         bool   `yaml:"check"`
@@ -158,6 +177,7 @@ func Default() *Config {
 		Update:    Update{Check: true, Channel: "stable", IntervalHours: 24},
 		Bookmarks: Bookmarks{FetchTitle: true},
 		Desktop:   Desktop{Notifications: true, PollSeconds: 5, PanelOnTop: true, Hotkey: "Ctrl+Alt+Space"},
+		Activity:  Activity{Enabled: true, RetentionDays: 90},
 	}
 }
 
@@ -210,6 +230,9 @@ func (c *Config) Validate() error {
 	}
 	if _, err := hotkey.Parse(c.Desktop.Hotkey); err != nil {
 		bad("desktop.hotkey: %v", err)
+	}
+	if c.Activity.RetentionDays < 1 || c.Activity.RetentionDays > 3650 {
+		bad("activity.retention_days must be between 1 and 3650 (got %d)", c.Activity.RetentionDays)
 	}
 	if c.Update.IntervalHours < 1 {
 		bad("update.interval_hours must be at least 1")

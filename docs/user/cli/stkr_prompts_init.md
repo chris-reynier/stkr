@@ -4,7 +4,7 @@ Copy the default prompt templates to ~/.stkr/prompts for editing
 
 ### Synopsis
 
-Copy start-day.md.tmpl and close-day.md.tmpl into the prompts folder of the data directory. A file there replaces the built-in template. Existing files are kept unless --force is given. Delete a file to go back to the default.
+Copy start-day.md.tmpl, close-day.md.tmpl and review-day.md.tmpl into the prompts folder of the data directory. A file there replaces the built-in template. Existing files are kept unless --force is given. Delete a file to go back to the default.
 
 ```
 stkr prompts init [flags]
@@ -33,5 +33,5 @@ stkr prompts init [flags]
 
 ### SEE ALSO
 
-* [stkr prompts](stkr_prompts.md)	 - Manage the Start Day and Close Day prompt templates
+* [stkr prompts](stkr_prompts.md)	 - Manage the Start Day, Close Day and review prompt templates
 

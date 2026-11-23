@@ -51,6 +51,19 @@ Start Day copies the prompt; open your AI chat and paste. Close Day copies the p
 
 The full key table is in the [Stream Deck keys contract](../contracts/streamdeck-keys.md).
 
+## Daily review keys
+
+Review the previous working day with an assistant of your choice. See [Daily review](daily-review.md).
+
+| Key | Action | Image |
+|---|---|---|
+| Previous Day Review | `POST http://127.0.0.1:7878/api/review/prompt` (copies the prompt), or a plugin that reads `GET /api/review/context` and builds its own | none |
+| Import Review | `POST http://127.0.0.1:7878/api/import/clipboard` | `http://127.0.0.1:7878/img/key/import.png` |
+| Stop Tracking | `POST http://127.0.0.1:7878/api/stop` | none |
+| Next Agent | `POST http://127.0.0.1:7878/api/agents/next/go` | `http://127.0.0.1:7878/img/agents.png` |
+
+Reading the review changes nothing; only Import Review writes, so each change is visible and can be undone on the Today page. A plugin can also send its lock and application activity in the background with `POST /api/activity/events` (see the [activity events contract](../contracts/activity-events.md)); STKR works the same without it.
+
 
 
 ### Forwarding events from a plugin

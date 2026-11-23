@@ -200,14 +200,14 @@ func TestUserTemplateOverrideAndInit(t *testing.T) {
 
 	// prompts init: keeps existing files, force overwrites.
 	written, err := InitPrompts(dir, false)
-	if err != nil || len(written) != 1 || !strings.HasSuffix(written[0], CloseDayTemplate) {
+	if err != nil || len(written) != 2 || !strings.HasSuffix(written[0], CloseDayTemplate) || !strings.HasSuffix(written[1], ReviewDayTemplate) {
 		t.Fatalf("init = %v %v", written, err)
 	}
 	if b, _ := os.ReadFile(filepath.Join(dir, StartDayTemplate)); string(b) != "{{if" {
 		t.Error("init must not overwrite without force")
 	}
 	written, err = InitPrompts(dir, true)
-	if err != nil || len(written) != 2 {
+	if err != nil || len(written) != 3 {
 		t.Fatalf("force init = %v %v", written, err)
 	}
 	if _, err := Render(dir, StartDayTemplate, StartDayData{Date: "D"}); err != nil {

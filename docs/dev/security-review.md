@@ -155,3 +155,13 @@ No new call. `TestAcceptanceOutboundHTTPOnlyWhereAllowed` lists the only files t
 - **The window message can be posted by any process of the same user session.** Its only effects are "show the panel" and "quit the app", the same power that process has by ending the app.
 - **A patched copy of a third-party wrapper.** `internal/desktop/edge` is MIT code that STKR now maintains; its changes are listed in `doc.go` and `doc.go` says why. Re-diff it against upstream when go-webview2 is updated.
 - Manual checks M10 to M16 in [acceptance.md](acceptance.md) cover what needs a real desktop: tray icon, panel, hotkey, navigation block, installer wizard, update, sign-in entry and the panel-open measurements.
+
+## Addendum: daily review and activity (v0.3.0)
+
+- **No new outbound calls, no provider.** The review routes only read the database and render a template. STKR never calls an assistant; the user pastes. `e2e/TestAcceptanceOutboundHTTPOnlyWhereAllowed` still passes.
+- **Read-only by method.** `GET /api/review/context`, `GET /api/review/prompt` and `GET /api/activity/summary` change nothing. The routes that write (`POST /api/activity/events`, `POST /api/review/prompt` for the clipboard, `POST /api/import*`) go through the Origin guard and the 1 MiB body limit like every other `POST`.
+- **Bounded input.** Activity events are decoded with unknown fields rejected, so a window title, URL, command or clipboard field cannot be stored; `app` and `workspace` refuse `/`, `\` and `:` (no paths or URLs), lengths are capped, a request holds at most 5,000 events, and one bad event rejects the request. Errors name the event number, never its values.
+- **Privacy filter.** The review context and prompt drop notes of personal and system time, items under personal and system contexts and personal ideas; activity in those contexts is reduced to a private total. Work folders and agent workspaces appear only with `review.include_workspace_paths`. Tested with sentinel strings in `service/TestReviewContextPrivacy`, `service/TestReviewPrompt`, `httpapi/TestReviewContextRoute` and `mcpserver/TestReviewTools`.
+- **Logs.** Review, activity and import log counts, dates and bases only. Tests search the logs for record text and activity content.
+- **Imported review records under personal or system contexts** are stored locally and never exported (the export key of those contexts is empty), and the import result counts them in `private`.
+- **MCP stays local.** `stkr mcp` serves stdio only; `mcpserver/TestServerIsLocalOnly` fails if the package imports a networking package or a network MCP transport.

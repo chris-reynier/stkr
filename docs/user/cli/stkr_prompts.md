@@ -1,6 +1,6 @@
 ## stkr prompts
 
-Manage the Start Day and Close Day prompt templates
+Manage the Start Day, Close Day and review prompt templates
 
 ```
 stkr prompts [flags]

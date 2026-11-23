@@ -94,7 +94,7 @@ func InitPrompts(dir string, force bool) ([]string, error) {
 		return nil, fmt.Errorf("create prompts dir: %w", err)
 	}
 	var written []string
-	for _, name := range []string{StartDayTemplate, CloseDayTemplate} {
+	for _, name := range []string{StartDayTemplate, CloseDayTemplate, ReviewDayTemplate} {
 		p := filepath.Join(dir, name)
 		if _, err := os.Stat(p); err == nil && !force {
 			continue
