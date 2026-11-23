@@ -29,10 +29,18 @@ const (
 	sqlUpdateEvent      = `UPDATE events SET ts = ?, context_id = ?, source = ?, note = ?, confirmed = ? WHERE id = ?`
 	sqlDeleteEvent      = `DELETE FROM events WHERE id = ?`
 
-	sqlGetDay    = `SELECT date, top1, top2, top3, brief_saved, close_saved FROM days WHERE date = ?`
-	sqlUpsertDay = `INSERT INTO days (date, top1, top2, top3, brief_saved, close_saved) VALUES (?, ?, ?, ?, ?, ?)
+	sqlGetDay    = `SELECT date, top1, top2, top3, brief_saved, close_saved, close_saved_at FROM days WHERE date = ?`
+	sqlUpsertDay = `INSERT INTO days (date, top1, top2, top3, brief_saved, close_saved, close_saved_at) VALUES (?, ?, ?, ?, ?, ?, ?)
 		ON CONFLICT(date) DO UPDATE SET top1 = excluded.top1, top2 = excluded.top2, top3 = excluded.top3,
-		brief_saved = excluded.brief_saved, close_saved = excluded.close_saved`
+		brief_saved = excluded.brief_saved, close_saved = excluded.close_saved, close_saved_at = excluded.close_saved_at`
+
+	activityCols      = `id, ts, app, category, workspace, context_id, duration_seconds, lock_state, received`
+	sqlUpsertActivity = `INSERT INTO activity_events (` + activityCols + `) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+		ON CONFLICT(id) DO UPDATE SET duration_seconds = MAX(activity_events.duration_seconds, excluded.duration_seconds),
+		context_id = COALESCE(excluded.context_id, activity_events.context_id)`
+	sqlGetActivity       = `SELECT duration_seconds, context_id FROM activity_events WHERE id = ?`
+	sqlActivityBetween   = `SELECT ` + activityCols + ` FROM activity_events WHERE ts >= ? AND ts < ? ORDER BY ts, id`
+	sqlDeleteActivityBef = `DELETE FROM activity_events WHERE ts < ?`
 
 	agentCols      = `id, slot, context_id, workspace, window_title, state, summary, updated, queued`
 	sqlGetAgent    = `SELECT ` + agentCols + ` FROM agent_instances WHERE id = ?`

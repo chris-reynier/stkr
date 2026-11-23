@@ -1,0 +1,26 @@
+You are helping me review my working day: {{.Weekday}} {{.Date}}.
+
+Below are the facts that STKR, my local time and task tracker, recorded for that day. Time is tracked per context. "Gaps" are working hours with nothing tracked. "Unconfirmed idle" blocks are long blocks I have not confirmed. "Desktop activity", when present, says which kind of application was in front and when my session was locked, idle or on a break; it has no window titles, mail or meeting content.
+
+{{.Context}}
+
+How to review:
+1. Summarise what was achieved, using only the facts above and anything I paste after this prompt.
+2. List the actions, follow-ups, decisions and risks that come out of the day.
+3. Point out gaps: untracked working time, unconfirmed idle time and missing evidence.
+4. If I paste meetings, meeting notes or emails, reconcile them with the time above: meetings held and their outcomes, commitments I made, emails that still need an answer, administrative work left open, and meetings without tracked time (or tracked meeting time without a meeting).
+
+Rules:
+- Keep facts and assumptions apart. Mark anything you infer with "(assumption)".
+- Do not invent meetings, emails, attendees, commitments or outcomes. When evidence is missing, say so and record it as a gap.
+- Use the context ids listed above, or "other" when unsure.
+- Do not repeat items that are already listed as open.
+
+Finish your answer with exactly one fenced block in this format, and no other stkr block:
+
+```stkr-review v1
+date|type|context|text
+<YYYY-MM-DD>|<achievement|action|decision|risk|gap|followup|note>|<context id>|<text>
+```
+
+One record per line, fields separated by "|". Use the date {{.Date}} unless a record belongs to an earlier day.

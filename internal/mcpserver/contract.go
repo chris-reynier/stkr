@@ -92,7 +92,9 @@ func RenderContract(tools []*mcp.Tool) string {
 	b.WriteString("- Every tool returns a one-line text summary plus structured JSON (`structuredContent`) that matches the output fields below. Durations are integer seconds in `*_seconds` fields; times are RFC 3339 with the configured zone offset.\n")
 	b.WriteString("- Errors are MCP tool errors (`isError: true`) whose text starts with a code: `[invalid]`, `[not_found]`, `[conflict]`, `[unavailable]` or `[internal]` (details are in the STKR log). A request that breaks the input schema is rejected as a protocol error before the tool runs.\n")
 	b.WriteString("- Limits: text fields up to 10 KB (short fields 500 bytes), `limit` 1 to 200 (default 50). Time events are recorded with source `mcp`.\n")
-	b.WriteString("- Privacy: personal ideas, items of personal and system projects and the notes of personal and system time are never returned. No tool returns configuration, paths or secrets.\n")
+	b.WriteString("- `list_unapproved_review_records` reads up to 256 KB of text; `report_activity_event` takes at most 5000 events per call.\n")
+	b.WriteString("- Privacy: personal ideas, items of personal and system projects and the notes of personal and system time are never returned. No tool returns configuration, paths or secrets; work folders appear in `get_review_context` only when `review.include_workspace_paths` is on.\n")
+	b.WriteString("- Local only: the server speaks MCP over the standard input and output of the `stkr mcp` process. It opens no network port and makes no network call of its own; the review and activity tools use the same validation and privacy rules as the HTTP API.\n")
 	b.WriteString("- Changes within v1 are additive: new optional inputs and new output fields.\n\n")
 	b.WriteString("## Tools\n\n")
 	for _, t := range sorted {

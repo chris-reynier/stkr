@@ -43,14 +43,23 @@ type ImportResult struct {
 	// State is ok, warn or fail (what the Stream Deck key shows).
 	State string `json:"state"`
 	// Kind is brief, close, both or empty when the kind could not be told.
-	Kind          string   `json:"kind,omitempty"`
-	Format        string   `json:"format"`
-	ItemsCreated  int      `json:"items_created"`
-	ItemsExisting int      `json:"items_existing"`
-	ItemsDone     int      `json:"items_done"`
-	TopsSaved     int      `json:"tops_saved"`
-	Ignored       int      `json:"ignored"`
-	Warnings      []string `json:"warnings"`
+	Kind          string `json:"kind,omitempty"`
+	Format        string `json:"format"`
+	ItemsCreated  int    `json:"items_created"`
+	ItemsExisting int    `json:"items_existing"`
+	ItemsDone     int    `json:"items_done"`
+	TopsSaved     int    `json:"tops_saved"`
+	// ReviewBlocks counts imported stkr-review blocks, BlocksRejected the
+	// review blocks dropped as a whole, Duplicates the repeated records
+	// inside one import that were stored once.
+	ReviewBlocks   int `json:"review_blocks"`
+	BlocksRejected int `json:"blocks_rejected"`
+	Duplicates     int `json:"duplicates"`
+	// Private counts records filed under personal or system contexts: they
+	// are stored but never exported.
+	Private  int      `json:"private"`
+	Ignored  int      `json:"ignored"`
+	Warnings []string `json:"warnings"`
 	// Exported lists the files written, relative to onedrive_dir.
 	Exported []string `json:"exported"`
 	// Redirect is set when nothing was imported: where to paste the text by hand.
@@ -62,7 +71,7 @@ type ImportResult struct {
 type NoValidBlockError struct{ Result ImportResult }
 
 func (e *NoValidBlockError) Error() string {
-	return "no stkr-brief or stkr-close block with valid lines was found; nothing was imported"
+	return "no stkr-brief, stkr-close or stkr-review block with valid lines was found; nothing was imported"
 }
 
 // Is lets errors.Is(err, domain.ErrInvalid) match.
@@ -81,15 +90,22 @@ func (s *Service) ImportClipboard(ctx context.Context) (ImportResult, error) {
 }
 
 func kindName(p daily.Parsed) string {
+	kind := ""
 	switch {
 	case p.Brief && p.Close:
-		return "both"
+		kind = "both"
 	case p.Brief:
-		return "brief"
+		kind = "brief"
 	case p.Close:
-		return "close"
+		kind = "close"
 	}
-	return ""
+	switch {
+	case len(p.Reviews) == 0:
+		return kind
+	case kind == "":
+		return "review"
+	}
+	return kind + "+review"
 }
 
 // resolveProject maps the project text of a record to a context id (by id,
@@ -131,8 +147,11 @@ func (s *Service) Import(ctx context.Context, text, via string) (ImportResult, e
 		return res, invalid("text is larger than %d KiB", maxImportBytes>>10)
 	}
 	p := daily.Parse(text)
+	futureWarn := rejectFutureReviews(&p, s.todayDate())
 	res.Format, res.Kind, res.Ignored = string(p.Format), kindName(p), p.Ignored
+	res.ReviewBlocks, res.BlocksRejected = len(p.Reviews), p.BlocksRejected
 	res.Warnings = append(res.Warnings, p.Warnings...)
+	res.Warnings = append(res.Warnings, futureWarn...)
 	if !p.Valid() {
 		res.Redirect = ImportRedirect
 		s.setImportKey(ctx, ImportFail)
@@ -151,7 +170,11 @@ func (s *Service) Import(ctx context.Context, text, via string) (ImportResult, e
 	}
 	touched := map[string]bool{}
 	unmatched := 0
+	var rn reviewNotes
 	err = s.st.InTx(ctx, func(tx *store.Store) error {
+		if err := importReviews(ctx, tx, ctxs, p.Reviews, via, &res, touched, &rn); err != nil {
+			return err
+		}
 		for _, it := range p.Items {
 			project := resolveProject(ctxs, it.Project)
 			_, created, err := tx.InsertItem(ctx, domain.Item{
@@ -208,6 +231,9 @@ func (s *Service) Import(ctx context.Context, text, via string) (ImportResult, e
 			}
 		}
 		day.BriefSaved = day.BriefSaved || p.Brief
+		if p.Close && !day.CloseSaved {
+			day.CloseSavedAt = s.clk.Now()
+		}
 		day.CloseSaved = day.CloseSaved || p.Close
 		return tx.UpsertDay(ctx, day)
 	})
@@ -217,6 +243,7 @@ func (s *Service) Import(ctx context.Context, text, via string) (ImportResult, e
 	if unmatched > 0 {
 		res.Warnings = append(res.Warnings, fmt.Sprintf("%d done line(s) matched no open item", unmatched))
 	}
+	res.Warnings = append(res.Warnings, rn.warnings()...)
 	if res.TopsSaved > 0 {
 		touched[inboxKey] = true // the inbox file shows the top three
 	}

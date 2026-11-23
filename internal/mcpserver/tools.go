@@ -207,6 +207,7 @@ func (a *adapter) addTools(s *mcp.Server) {
 	tool(a, s, &mcp.Tool{Name: "report_agent_event", Annotations: writes("Report an agent event", true),
 		Description: "Report the state of a coding agent window (idle, working, action_required, done, error) so STKR can show it and map its workspace to a context."},
 		a.reportAgentEvent)
+	a.addReviewTools(s)
 }
 
 // ---- handlers ----

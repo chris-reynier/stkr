@@ -126,10 +126,14 @@ const (
 	ItemNote     ItemType = "note"
 	ItemFollowup ItemType = "followup"
 	ItemRisk     ItemType = "risk"
+	// ItemAchievement is something finished (review records); it is stored done.
+	ItemAchievement ItemType = "achievement"
+	// ItemGap is missing evidence or an unaccounted stretch to clear up.
+	ItemGap ItemType = "gap"
 )
 
 // ItemTypes lists the valid item types.
-var ItemTypes = []ItemType{ItemAction, ItemDecision, ItemNote, ItemFollowup, ItemRisk}
+var ItemTypes = []ItemType{ItemAction, ItemDecision, ItemNote, ItemFollowup, ItemRisk, ItemAchievement, ItemGap}
 
 // Valid reports whether t is a known type.
 func (t ItemType) Valid() bool { return oneOf(t, ItemTypes) }
@@ -343,4 +347,60 @@ type Day struct {
 	Top        [3]string `json:"top"`
 	BriefSaved bool      `json:"brief_saved"`
 	CloseSaved bool      `json:"close_saved"`
+	// CloseSavedAt is when the close was first saved (zero when unknown).
+	CloseSavedAt time.Time `json:"close_saved_at,omitzero"`
+}
+
+// ActivityCategory is the kind of work a local activity event belongs to.
+type ActivityCategory string
+
+// Activity categories.
+const (
+	ActivityDevelopment    ActivityCategory = "development"
+	ActivityMeeting        ActivityCategory = "meeting"
+	ActivityEmail          ActivityCategory = "email"
+	ActivityAdministration ActivityCategory = "administration"
+	ActivityBrowser        ActivityCategory = "browser"
+	ActivityBreak          ActivityCategory = "break"
+	ActivityLock           ActivityCategory = "lock"
+	ActivityOther          ActivityCategory = "other"
+)
+
+// ActivityCategories lists the valid categories.
+var ActivityCategories = []ActivityCategory{ActivityDevelopment, ActivityMeeting, ActivityEmail,
+	ActivityAdministration, ActivityBrowser, ActivityBreak, ActivityLock, ActivityOther}
+
+// Valid reports whether c is a known category.
+func (c ActivityCategory) Valid() bool { return oneOf(c, ActivityCategories) }
+
+// LockState is the session state of an activity event.
+type LockState string
+
+// Lock states.
+const (
+	LockActive LockState = "active"
+	LockIdle   LockState = "idle"
+	LockLocked LockState = "locked"
+	LockBreak  LockState = "break"
+)
+
+// LockStates lists the valid lock states.
+var LockStates = []LockState{LockActive, LockIdle, LockLocked, LockBreak}
+
+// Valid reports whether s is a known lock state.
+func (s LockState) Valid() bool { return oneOf(s, LockStates) }
+
+// ActivityEvent is a piece of local activity evidence: which application
+// category was in front, for how long, in which session state. It never holds
+// window titles, URLs, keystrokes, screen or clipboard content.
+type ActivityEvent struct {
+	ID        string           `json:"id"`
+	TS        time.Time        `json:"ts"`
+	App       string           `json:"app"`
+	Category  ActivityCategory `json:"category"`
+	Workspace string           `json:"workspace,omitempty"`
+	ContextID string           `json:"context_id,omitempty"`
+	Duration  Duration         `json:"duration_seconds"`
+	LockState LockState        `json:"lock_state"`
+	Received  time.Time        `json:"received"`
 }

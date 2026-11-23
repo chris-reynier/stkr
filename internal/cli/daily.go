@@ -117,22 +117,38 @@ func newCloseCmd(opts *options) *cobra.Command {
 	return cmd
 }
 
+// readImportText reads the import text from the clipboard (no argument), stdin
+// ("-") or a file.
+func readImportText(cmd *cobra.Command, svc *service.Service, args []string) (string, error) {
+	if len(args) == 0 {
+		return svc.ReadClipboard(cmd.Context())
+	}
+	return readInput(cmd.InOrStdin(), args[0])
+}
+
 func newImportCmd(opts *options) *cobra.Command {
-	return &cobra.Command{
+	var dryRun bool
+	cmd := &cobra.Command{
 		Use:   "import [file|-]",
-		Short: "Import the AI answer (stkr-brief / stkr-close block) from the clipboard, a file or stdin",
+		Short: "Import the AI answer (stkr-brief / stkr-close / stkr-review block) from the clipboard, a file or stdin",
 		Long: "Read the answer of your AI chat and store it: items are added (never twice), the top 3 and " +
 			"the saved flags of today are updated, and the project logs under onedrive_dir are rewritten.\n\n" +
 			"Without an argument the text comes from the clipboard; `-` reads standard input. " +
 			"The text must contain a ```stkr-brief v1 or ```stkr-close v1 fenced block; plain " +
 			"`top | ...` / `item | ...` / `done | ...` lines are accepted with a warning. " +
-			"When nothing usable is found, nothing is written and the command exits with code 2.",
-		Example: "  stkr import\n  stkr import answer.txt\n  cat answer.txt | stkr import -",
+			"When nothing usable is found, nothing is written and the command exits with code 2.\n\n" +
+			"A ```stkr-review v1 block (the answer to `stkr review`) adds its records as items dated by each record. " +
+			"A malformed line rejects its whole block. With --dry-run nothing is written: the records are listed as " +
+			"new, existing or duplicate so you can check them first.",
+		Example: "  stkr import\n  stkr import answer.txt\n  cat answer.txt | stkr import -\n  stkr import --dry-run",
 		Args:    maxArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			svc, err := opts.service(cmd)
 			if err != nil {
 				return err
+			}
+			if dryRun {
+				return previewImport(cmd, opts, svc, args)
 			}
 			var res service.ImportResult
 			if len(args) == 0 {
@@ -171,6 +187,44 @@ func newImportCmd(opts *options) *cobra.Command {
 			return err
 		},
 	}
+	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "list what would be imported and write nothing")
+	return cmd
+}
+
+// previewImport prints what an import would store. It exits with code 2
+// (like a failed import) when the text holds nothing usable.
+func previewImport(cmd *cobra.Command, opts *options, svc *service.Service, args []string) error {
+	text, err := readImportText(cmd, svc, args)
+	if err != nil {
+		return err
+	}
+	p, err := svc.PreviewImport(cmd.Context(), text)
+	if err != nil {
+		return err
+	}
+	out := cmd.OutOrStdout()
+	if opts.json {
+		if err := printJSON(out, p); err != nil {
+			return err
+		}
+	} else {
+		for _, r := range p.Records {
+			flag := ""
+			if r.Private {
+				flag = " [private, not exported]"
+			} else if !r.KnownContext {
+				flag = " [unknown context]"
+			}
+			fmt.Fprintf(out, "%-9s %s %-11s %s: %s%s\n", r.Status, r.Date, r.Type, r.Context, r.Text, flag)
+		}
+		fmt.Fprintf(out, "Dry run: %d record(s), %d top(s), %d done line(s), %d block(s) rejected, %d line(s) ignored. Nothing was written.\n",
+			len(p.Records), p.Tops, p.Done, p.BlocksRejected, p.Ignored)
+		warn(cmd.ErrOrStderr(), p.Warnings)
+	}
+	if !p.Valid {
+		return &service.NoValidBlockError{Result: service.ImportResult{Format: p.Format, Ignored: p.Ignored, BlocksRejected: p.BlocksRejected, Warnings: p.Warnings}}
+	}
+	return nil
 }
 
 // readInput reads the import text from stdin ("-") or a file, bounded.
@@ -195,7 +249,7 @@ func readInput(stdin io.Reader, name string) (string, error) {
 func newPromptsCmd(opts *options) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "prompts",
-		Short: "Manage the Start Day and Close Day prompt templates",
+		Short: "Manage the Start Day, Close Day and review prompt templates",
 		Args:  cobra.NoArgs,
 		RunE:  func(cmd *cobra.Command, _ []string) error { return cmd.Help() },
 	}
@@ -203,7 +257,7 @@ func newPromptsCmd(opts *options) *cobra.Command {
 	initCmd := &cobra.Command{
 		Use:   "init",
 		Short: "Copy the default prompt templates to ~/.stkr/prompts for editing",
-		Long: "Copy start-day.md.tmpl and close-day.md.tmpl into the prompts folder of the data directory. " +
+		Long: "Copy start-day.md.tmpl, close-day.md.tmpl and review-day.md.tmpl into the prompts folder of the data directory. " +
 			"A file there replaces the built-in template. Existing files are kept unless --force is given. " +
 			"Delete a file to go back to the default.",
 		Example: "  stkr prompts init",

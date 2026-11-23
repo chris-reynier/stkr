@@ -112,7 +112,8 @@ func newRoot() (*cobra.Command, *options) {
 		newSwitchCmd(opts), newStopCmd(opts), newNowCmd(opts), newDayCmd(opts), newWeekCmd(opts),
 		newCtxCmd(opts), newBackupCmd(opts), newImportLegacyCmd(opts), newAgentsCmd(opts), newAICmd(opts), newServeCmd(opts),
 		newStartDayCmd(opts), newCloseCmd(opts), newImportCmd(opts), newPromptsCmd(opts),
-		newIdeaCmd(opts), newIdeasCmd(opts), newBookmarkCmd(opts), newLinksCmd(opts), newMCPCmd(opts))
+		newIdeaCmd(opts), newIdeasCmd(opts), newBookmarkCmd(opts), newLinksCmd(opts), newMCPCmd(opts),
+		newReviewCmd(opts), newActivityCmd(opts))
 	markUnknownAsUsage(root)
 	return root, opts
 }

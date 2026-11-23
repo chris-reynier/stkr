@@ -79,6 +79,7 @@ func (s *Server) routes() {
 	s.agentRoutes()
 	s.dailyRoutes()
 	s.captureRoutes()
+	s.reviewRoutes()
 	s.mux.HandleFunc("/", func(w http.ResponseWriter, _ *http.Request) {
 		writeJSON(w, http.StatusNotFound, errBody{Error: "not_found", Message: "no such route"})
 	})

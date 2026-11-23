@@ -76,6 +76,11 @@ func specs() []section {
 			{Key: "whisper.bin", Label: "Whisper program", Type: "text"},
 			{Key: "whisper.model", Label: "Whisper model file", Type: "text"},
 		}},
+		{Title: "Daily review", Fields: []field{
+			{Key: "activity.enabled", Label: "Accept activity from local clients", Type: "bool", Help: "Application categories and lock state sent by the Stream Deck plugin."},
+			{Key: "activity.retention_days", Label: "Keep activity (days)", Type: "number", Help: "1 to 3650. Older activity is deleted."},
+			{Key: "review.include_workspace_paths", Label: "Include work folders in the review context", Type: "bool", Help: "Off keeps folder paths on this computer."},
+		}},
 		{Title: "Bookmarks", Fields: []field{
 			{Key: "bookmarks.fetch_title", Label: "Fetch page titles", Type: "bool", Help: "Downloads the page (2 s limit) to read its title."},
 		}},

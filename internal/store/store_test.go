@@ -43,7 +43,7 @@ func TestMigrateCreatesEverythingAndIsIdempotent(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := []string{"agent_instances", "bookmarks", "contexts", "days", "events", "ideas", "items", "kv", "schema_migrations"}
+	want := []string{"activity_events", "agent_instances", "bookmarks", "contexts", "days", "events", "ideas", "items", "kv", "schema_migrations"}
 	if diff := cmp.Diff(want, tables); diff != "" {
 		t.Fatalf("tables (-want +got):\n%s", diff)
 	}
@@ -66,7 +66,7 @@ func TestMigrateCreatesEverythingAndIsIdempotent(t *testing.T) {
 	if err != nil || len(applied) != 0 {
 		t.Fatalf("second migrate: %v %v", applied, err)
 	}
-	if v, _ := s.SchemaVersion(ctx); v != 1 {
+	if v, _ := s.SchemaVersion(ctx); v != 2 {
 		t.Fatalf("version = %d", v)
 	}
 	var pragmas [3]string
@@ -100,7 +100,7 @@ func TestPreMigrationBackupFromFakeV0(t *testing.T) {
 	}
 	defer s.Close()
 	applied, err := s.Migrate(ctx, dir, t0)
-	if err != nil || len(applied) != 1 {
+	if err != nil || len(applied) != 2 {
 		t.Fatalf("migrate: %v %v", applied, err)
 	}
 	bk := filepath.Join(dir, "pre-migrate-0-20261116T080000Z.db")
@@ -127,22 +127,23 @@ func TestPendingMigrationBacksUpAndFailureRollsBack(t *testing.T) {
 	}
 	first := embedded(t, "0001_init.sql")
 	fsys := fstest.MapFS{
-		"migrations/0001_init.sql":  first,
-		"migrations/0002_extra.sql": {Data: []byte(`CREATE TABLE extra (id INTEGER); INSERT INTO extra VALUES (1);`)},
+		"migrations/0001_init.sql":   first,
+		"migrations/0002_review.sql": embedded(t, "0002_review.sql"),
+		"migrations/0003_extra.sql":  {Data: []byte(`CREATE TABLE extra (id INTEGER); INSERT INTO extra VALUES (1);`)},
 	}
 	applied, err := s.migrate(ctx, fsys, backups, t0.Add(time.Hour))
-	if err != nil || !cmp.Equal(applied, []int{2}) {
+	if err != nil || !cmp.Equal(applied, []int{3}) {
 		t.Fatalf("migrate: %v %v", applied, err)
 	}
-	if _, err := os.Stat(filepath.Join(backups, "pre-migrate-1-20261116T090000Z.db")); err != nil {
+	if _, err := os.Stat(filepath.Join(backups, "pre-migrate-2-20261116T090000Z.db")); err != nil {
 		t.Fatalf("no pre-migration backup: %v", err)
 	}
 	// A failing migration leaves no partial state and keeps the version.
-	fsys["migrations/0003_bad.sql"] = &fstest.MapFile{Data: []byte(`CREATE TABLE half (id INTEGER); NOT SQL;`)}
+	fsys["migrations/0004_bad.sql"] = &fstest.MapFile{Data: []byte(`CREATE TABLE half (id INTEGER); NOT SQL;`)}
 	if _, err := s.migrate(ctx, fsys, backups, t0.Add(2*time.Hour)); err == nil {
 		t.Fatal("bad migration should fail")
 	}
-	if v, _ := s.SchemaVersion(ctx); v != 2 {
+	if v, _ := s.SchemaVersion(ctx); v != 3 {
 		t.Fatalf("version after failure = %d", v)
 	}
 	tables, _ := s.Tables(ctx)
@@ -485,7 +486,7 @@ func TestBackup(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer b.Close()
-	if v, _ := b.SchemaVersion(ctx); v != 1 {
+	if v, _ := b.SchemaVersion(ctx); v != 2 {
 		t.Fatalf("backup version %d", v)
 	}
 	if !strings.HasSuffix(s.Path(), "stkr.db") {
@@ -529,5 +530,82 @@ func TestParseTS(t *testing.T) {
 	}
 	if got, err := ParseTS(s); err != nil || !got.Equal(ts) {
 		t.Fatalf("parse: %v %v", got, err)
+	}
+}
+
+func TestMigration2KeepsItemsAndAddsReviewTypes(t *testing.T) {
+	ctx := context.Background()
+	dir := t.TempDir()
+	s, err := Open(ctx, filepath.Join(dir, "stkr.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	v1 := fstest.MapFS{"migrations/0001_init.sql": embedded(t, "0001_init.sql")}
+	if _, err := s.migrate(ctx, v1, dir, t0); err != nil {
+		t.Fatal(err)
+	}
+	old, created, err := s.InsertItem(ctx, domain.Item{Date: "2026-11-16", Project: "other", Type: domain.ItemRisk, Summary: "keep", Fingerprint: "fp-old"})
+	if err != nil || !created {
+		t.Fatal(err)
+	}
+	if _, _, err := s.InsertItem(ctx, domain.Item{Type: domain.ItemAchievement, Summary: "x", Fingerprint: "fp-x"}); err == nil {
+		t.Fatal("v1 schema must reject achievement")
+	}
+	if err := s.UpsertDay(ctx, domain.Day{Date: "2026-11-16"}); err == nil {
+		t.Fatal("v1 schema has no close_saved_at")
+	}
+	if _, err := s.Migrate(ctx, dir, t0.Add(time.Hour)); err != nil {
+		t.Fatal(err)
+	}
+	got, err := s.GetItem(ctx, old.ID)
+	if err != nil || got.Summary != "keep" || got.Fingerprint != "fp-old" {
+		t.Fatalf("item after migration: %+v %v", got, err)
+	}
+	for _, typ := range []domain.ItemType{domain.ItemAchievement, domain.ItemGap} {
+		if _, _, err := s.InsertItem(ctx, domain.Item{Type: typ, Summary: string(typ), Fingerprint: "fp-" + string(typ)}); err != nil {
+			t.Fatalf("%s: %v", typ, err)
+		}
+	}
+	// A repeated fingerprint is still a no-op after the rebuild.
+	if _, created, err := s.InsertItem(ctx, domain.Item{Type: domain.ItemRisk, Summary: "again", Fingerprint: "fp-old"}); err != nil || created {
+		t.Fatalf("unique fingerprint lost: %v %v", created, err)
+	}
+	at := t0.Add(2 * time.Hour)
+	if err := s.UpsertDay(ctx, domain.Day{Date: "2026-11-16", CloseSaved: true, CloseSavedAt: at}); err != nil {
+		t.Fatal(err)
+	}
+	d, err := s.GetDay(ctx, "2026-11-16")
+	if err != nil || !d.CloseSavedAt.Equal(at) {
+		t.Fatalf("day: %+v %v", d, err)
+	}
+}
+
+func TestActivityUpsertMergesDeterministically(t *testing.T) {
+	ctx := context.Background()
+	s, _ := open(t)
+	ev := domain.ActivityEvent{ID: "a1", TS: t0, App: "Code", Category: domain.ActivityDevelopment,
+		Duration: domain.Duration(60 * time.Second), LockState: domain.LockActive, Received: t0}
+	for i, want := range []struct {
+		dur  time.Duration
+		ctx  string
+		want ActivityUpsert
+	}{{60 * time.Second, "", ActivityInserted}, {60 * time.Second, "", ActivityUnchanged}, {30 * time.Second, "", ActivityUnchanged},
+		{120 * time.Second, "", ActivityMerged}, {10 * time.Second, "other", ActivityMerged}, {10 * time.Second, "", ActivityUnchanged}} {
+		ev.Duration, ev.ContextID = domain.Duration(want.dur), want.ctx
+		got, err := s.UpsertActivity(ctx, ev)
+		if err != nil || got != want.want {
+			t.Fatalf("step %d: %v %v, want %v", i, got, err, want.want)
+		}
+	}
+	list, err := s.ActivityBetween(ctx, t0.Add(-time.Hour), t0.Add(time.Hour))
+	if err != nil || len(list) != 1 {
+		t.Fatalf("list: %v %v", list, err)
+	}
+	if list[0].Duration.D() != 120*time.Second || list[0].ContextID != "other" || list[0].App != "Code" {
+		t.Fatalf("merged: %+v", list[0])
+	}
+	if n, err := s.DeleteActivityBefore(ctx, t0.Add(time.Second)); err != nil || n != 1 {
+		t.Fatalf("prune: %d %v", n, err)
 	}
 }

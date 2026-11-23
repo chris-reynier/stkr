@@ -80,8 +80,8 @@ func TestSmokeP08MCP(t *testing.T) {
 	send(`{"jsonrpc":"2.0","id":2,"method":"tools/list"}`)
 	list := recv()
 	tools := list["result"].(map[string]any)["tools"].([]any)
-	if len(tools) != 12 {
-		t.Fatalf("want 12 tools, got %d", len(tools))
+	if len(tools) != 16 {
+		t.Fatalf("want 16 tools, got %d", len(tools))
 	}
 
 	send(`{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"get_now","arguments":{}}}`)
@@ -144,7 +144,7 @@ func TestMCPAnswersAfterStdinEOF(t *testing.T) {
 			}
 			if id, ok := m["id"].(float64); ok {
 				ids[id] = true
-				if id == 2 && len(m["result"].(map[string]any)["tools"].([]any)) != 12 {
+				if id == 2 && len(m["result"].(map[string]any)["tools"].([]any)) != 16 {
 					t.Fatalf("tools/list: %v", m)
 				}
 			}
