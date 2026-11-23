@@ -9,6 +9,7 @@ STKR helps you plan the day and close it with your AI chat, without retyping any
 3. **Import** reads that answer: your top 3 priorities and any new actions, decisions, follow-ups, notes and risks are saved. Nothing is added twice.
 4. **Close Day** does the same at the end of the day and lets the AI mark items done.
 5. STKR rewrites a log file per project in your OneDrive folder (or any folder you choose), and reminds you if you forget to close the day.
+6. The next morning, the [daily review](daily-review.md) looks back at the previous working day with the assistant of your choice.
 
 Nothing leaves your computer except what you paste into your own chat (and the short plan request, if you turn on `ai.plan_start_day`; see [AI providers](ai-providers.md)). The digest never includes personal or system contexts, and personal ideas are left out.
 
@@ -103,14 +104,15 @@ STKR rewrites only the `## Current focus` and `## Log` sections. The header, you
 stkr prompts init
 ```
 
-copies `start-day.md.tmpl` and `close-day.md.tmpl` to `prompts/` in your data folder. Edit them freely; a file there replaces the built-in one. Delete the file to go back to the default. Templates use Go `text/template` syntax:
+copies `start-day.md.tmpl`, `close-day.md.tmpl` and `review-day.md.tmpl` to `prompts/` in your data folder. Edit them freely; a file there replaces the built-in one. Delete the file to go back to the default. Templates use Go `text/template` syntax:
 
 | Template | Fields |
 |---|---|
 | `start-day.md.tmpl` | `{{.Date}}` (YYYY-MM-DD), `{{.Weekday}}`, `{{.Digest}}` |
 | `close-day.md.tmpl` | `{{.Date}}`, `{{.Weekday}}`, `{{.Context}}` (today's facts) |
+| `review-day.md.tmpl` | `{{.Date}}`, `{{.Weekday}}`, `{{.Basis}}` (how the day was chosen), `{{.Context}}` (the facts of that day) |
 
-Keep the instruction to answer with a `stkr-brief v1` / `stkr-close v1` block and the line format, or the import will not find the answer. The exact grammar is in [the import contract](../contracts/import-fences.md). A broken template stops the command with a message naming the file.
+Keep the instruction to answer with a `stkr-brief v1` / `stkr-close v1` / `stkr-review v1` block and the line format, or the import will not find the answer. The exact grammar is in [the import contract](../contracts/import-fences.md). A broken template stops the command with a message naming the file.
 
 ## Configuration keys
 

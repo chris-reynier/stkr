@@ -13,6 +13,7 @@ STKR is a local-first task stack manager. These pages explain how to use it. If 
 - [Web UI](web-ui.md): Today, Week, Agents, Ideas, Links and Settings pages, edit your timeline, export Tempo CSV.
 - [Stream Deck](stream-deck.md): switch contexts from keys and show the current context.
 - [Daily loop](daily-loop.md): Start Day, Close Day, import the AI answer, project log files, reminders.
+- [Daily review](daily-review.md): review the previous working day with an assistant of your choice and import its answer; local activity from the Stream Deck plugin.
 - [Agents](agents.md): see all coding agent windows, jump to the one that needs you.
 - [Capture](capture.md): ideas, voice notes, phone inbox, meeting actions and decisions.
 - [Bookmarks](bookmarks.md): save and find links.

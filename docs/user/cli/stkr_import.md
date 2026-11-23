@@ -1,12 +1,14 @@
 ## stkr import
 
-Import the AI answer (stkr-brief / stkr-close block) from the clipboard, a file or stdin
+Import the AI answer (stkr-brief / stkr-close / stkr-review block) from the clipboard, a file or stdin
 
 ### Synopsis
 
 Read the answer of your AI chat and store it: items are added (never twice), the top 3 and the saved flags of today are updated, and the project logs under onedrive_dir are rewritten.
 
 Without an argument the text comes from the clipboard; `-` reads standard input. The text must contain a ```stkr-brief v1 or ```stkr-close v1 fenced block; plain `top | ...` / `item | ...` / `done | ...` lines are accepted with a warning. When nothing usable is found, nothing is written and the command exits with code 2.
+
+A ```stkr-review v1 block (the answer to `stkr review`) adds its records as items dated by each record. A malformed line rejects its whole block. With --dry-run nothing is written: the records are listed as new, existing or duplicate so you can check them first.
 
 ```
 stkr import [file|-] [flags]
@@ -18,12 +20,14 @@ stkr import [file|-] [flags]
   stkr import
   stkr import answer.txt
   cat answer.txt | stkr import -
+  stkr import --dry-run
 ```
 
 ### Options
 
 ```
-  -h, --help   help for import
+      --dry-run   list what would be imported and write nothing
+  -h, --help      help for import
 ```
 
 ### Options inherited from parent commands

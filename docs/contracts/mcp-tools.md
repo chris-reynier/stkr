@@ -9,7 +9,9 @@
 - Every tool returns a one-line text summary plus structured JSON (`structuredContent`) that matches the output fields below. Durations are integer seconds in `*_seconds` fields; times are RFC 3339 with the configured zone offset.
 - Errors are MCP tool errors (`isError: true`) whose text starts with a code: `[invalid]`, `[not_found]`, `[conflict]`, `[unavailable]` or `[internal]` (details are in the STKR log). A request that breaks the input schema is rejected as a protocol error before the tool runs.
 - Limits: text fields up to 10 KB (short fields 500 bytes), `limit` 1 to 200 (default 50). Time events are recorded with source `mcp`.
-- Privacy: personal ideas, items of personal and system projects and the notes of personal and system time are never returned. No tool returns configuration, paths or secrets.
+- `list_unapproved_review_records` reads up to 256 KB of text; `report_activity_event` takes at most 5000 events per call.
+- Privacy: personal ideas, items of personal and system projects and the notes of personal and system time are never returned. No tool returns configuration, paths or secrets; work folders appear in `get_review_context` only when `review.include_workspace_paths` is on.
+- Local only: the server speaks MCP over the standard input and output of the `stkr mcp` process. It opens no network port and makes no network call of its own; the review and activity tools use the same validation and privacy rules as the HTTP API.
 - Changes within v1 are additive: new optional inputs and new output fields.
 
 ## Tools
@@ -35,6 +37,37 @@ Output (top-level fields):
 | `created` | boolean |
 | `idea` | object |
 | `item` | object |
+
+### `get_activity_summary`
+
+Summarise the local activity of one day: time per lock state, category, application and workspace, and the locked, idle and break periods.
+
+Access: read only.
+
+Input:
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `date` | string | no | YYYY-MM-DD, today or yesterday; default today |
+
+Output (top-level fields):
+
+| Field | Type |
+|---|---|
+| `active_seconds` | integer |
+| `apps` | array |
+| `break_seconds` | integer |
+| `categories` | array |
+| `date` | string |
+| `events` | integer |
+| `first` | string |
+| `idle_seconds` | integer |
+| `last` | string |
+| `locked_seconds` | integer |
+| `periods` | array |
+| `periods_dropped` | integer |
+| `private_seconds` | integer |
+| `workspaces` | array |
 
 ### `get_day`
 
@@ -107,6 +140,42 @@ Output (top-level fields):
 | `since` | string |
 | `today_counted_seconds` | integer |
 | `tracking` | boolean |
+
+### `get_review_context`
+
+Return the privacy-bounded review metadata of one working day: tracked blocks, gaps, totals, open items, new ideas, agents, local activity, close state and the evidence STKR does not have. Without a date it picks the previous working day. Same data as GET /api/review/context.
+
+Access: read only.
+
+Input:
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `date` | string | no | YYYY-MM-DD, not in the future; default the previous working day |
+
+Output (top-level fields):
+
+| Field | Type |
+|---|---|
+| `activity` | object |
+| `agents` | array |
+| `basis` | string |
+| `blocks` | array |
+| `close` | object |
+| `contexts` | array |
+| `date` | string |
+| `day_items` | array |
+| `gaps` | array |
+| `missing` | array |
+| `new_ideas` | array |
+| `open_items` | array |
+| `previous_working_day` | string |
+| `timezone` | string |
+| `top` | array |
+| `totals` | array |
+| `tracking` | object |
+| `weekday` | string |
+| `working_day` | boolean |
 
 ### `get_week`
 
@@ -195,6 +264,57 @@ Output (top-level fields):
 |---|---|
 | `count` | integer |
 | `items` | array |
+
+### `list_unapproved_review_records`
+
+Check an answer before the user imports it: list the records a stkr-review (or brief/close) block would store, whether each is new, already stored or repeated, and the warnings. Writes nothing; the user approves by importing the text (stkr import, Import Review key).
+
+Access: read only.
+
+Input:
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `text` | string | yes | answer text holding a stkr-review (or stkr-brief / stkr-close) block, max 256 KB |
+
+Output (top-level fields):
+
+| Field | Type |
+|---|---|
+| `blocks_rejected` | integer |
+| `done` | integer |
+| `format` | string |
+| `ignored` | integer |
+| `kind` | string |
+| `records` | array |
+| `tops` | integer |
+| `valid` | boolean |
+| `warnings` | array |
+
+### `report_activity_event`
+
+Store local activity evidence (application category, workspace, lock state, duration). Replays are merged, so the same events may be sent again. One malformed event rejects the whole call. Same rules as POST /api/activity/events.
+
+Access: changes data.
+
+Input:
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `events` | array | yes | activity events (at most 5000); window titles, URLs and clipboard text are not accepted |
+
+Output (top-level fields):
+
+| Field | Type |
+|---|---|
+| `inserted` | integer |
+| `merged` | integer |
+| `out_of_range` | integer |
+| `pruned` | integer |
+| `received` | integer |
+| `unchanged` | integer |
+| `unmapped` | integer |
+| `warnings` | array |
 
 ### `report_agent_event`
 

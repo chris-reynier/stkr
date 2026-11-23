@@ -27,6 +27,7 @@ On Linux and macOS there is no desktop app: unpack the archive, put `stkr` on yo
 | Windows desktop app (`stkrw.exe`): notification-area icon showing what runs, an always-on-top panel (switch, stop, capture idea, daily loop) with a global hotkey, and a full app window | [Desktop app](docs/user/desktop.md) |
 | Agents hub: see all coding-agent windows and jump to the one that needs you | [Agents](docs/user/agents.md) |
 | Daily loop: Start Day and Close Day prompts, import of the AI answer, project log files, close reminder | [Daily loop](docs/user/daily-loop.md) |
+| Daily review: privacy-bounded review context of the previous working day for any assistant (no account or SDK), `stkr-review` import with dry run, local activity evidence from the Stream Deck plugin | [Daily review](docs/user/daily-review.md) |
 | Capture: text and voice ideas, phone inbox, meeting actions and decisions, bookmarks | [Capture](docs/user/capture.md), [Bookmarks](docs/user/bookmarks.md) |
 | Optional AI cleanup of ideas and a Start Day plan (Ollama, Claude Code or GitHub Copilot) | [AI providers](docs/user/ai-providers.md) |
 | MCP server (`stkr mcp`) for Claude Code and GitHub Copilot | [MCP server](docs/user/mcp.md) |
@@ -62,7 +63,7 @@ To keep test data away from your real data, set `STKR_HOME` to another folder.
 - [Command reference](docs/user/cli/stkr.md)
 - [Architecture](docs/dev/architecture.md), [testing](docs/dev/testing.md), [acceptance matrix](docs/dev/acceptance.md), [security review](docs/dev/security-review.md) and [performance numbers](docs/dev/nfr.md)
 - [Interface contracts](docs/contracts/README.md)
-- Release notes: [v0.2.0](docs/dev/release-notes-v0.2.0.md), [v0.1.0](docs/dev/release-notes-v0.1.0.md)
+- Release notes: [v0.3.0](docs/dev/release-notes-v0.3.0.md), [v0.2.0](docs/dev/release-notes-v0.2.0.md), [v0.1.0](docs/dev/release-notes-v0.1.0.md)
 - [Contributing](CONTRIBUTING.md) and [security policy](SECURITY.md)
 
 ## License

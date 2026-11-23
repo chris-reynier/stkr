@@ -20,7 +20,7 @@ Published:
 | [`tempo-csv.md`](tempo-csv.md) | Tempo CSV columns, rounding, ticket mapping (v1) |
 | [`agent-events.md`](agent-events.md) | Agent event and sync payloads, states, state map, next-instance order (v1) |
 | [`streamdeck-keys.md`](streamdeck-keys.md) | Stream Deck key to endpoint to image table (v1) |
-| [`import-fences.md`](import-fences.md) | `stkr-brief` and `stkr-close` text blocks, fingerprints, pipe fallback (v1) |
+| [`import-fences.md`](import-fences.md) | `stkr-brief`, `stkr-close` and `stkr-review` text blocks, fingerprints, pipe fallback, preview (v1) |
 | [`onedrive-export.md`](onedrive-export.md) | Project log files: section ownership, atomic rewrite (v1) |
 | [`paste-helper.md`](paste-helper.md) | `POST /api/paste`: window title, Enter, errors (v1) |
 | [`phone-inbox.md`](phone-inbox.md) | Phone inbox file naming, tag rules, stability, processed folder (v1) |
@@ -29,6 +29,8 @@ Published:
 | [`status-api.md`](status-api.md) | `GET /api/status`: current context, switch list, close due, update, counters, `hosted_by` (v1) |
 | [`desktop-windows.md`](desktop-windows.md) | Desktop panel and app window: page-to-app messages, `window.json`, fallbacks (v1) |
 | [`install-update.md`](install-update.md) | `install.json`, update methods (setup or replace), setup flags, `stkrw` arguments, sign-in Run key, update routes (v1) |
+| [`review-context.md`](review-context.md) | `GET /api/review/context` and the review prompt: date selection, privacy, missing evidence (v1) |
+| [`activity-events.md`](activity-events.md) | `POST /api/activity/events` and the activity summary: fields, identity, range, limits (v1) |
 
 Added with the features that introduce them:
 

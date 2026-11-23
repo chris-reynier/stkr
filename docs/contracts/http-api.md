@@ -134,11 +134,26 @@ The Start Day, Close Day, import and paste routes. Formats: [import-fences.md](i
 Import responses (`200`) have the shape in [import-fences.md](import-fences.md#result). A text without a usable record gives `422`:
 
 ```json
-{"ok": false, "state": "fail", "error": "no_valid_block", "message": "no stkr-brief or stkr-close block with valid lines was found; nothing was imported",
+{"ok": false, "state": "fail", "error": "no_valid_block", "message": "no stkr-brief, stkr-close or stkr-review block with valid lines was found; nothing was imported",
  "redirect": "/ui/today#import", "format": "pipe", "items_created": 0, "ignored": 0, "warnings": [], "exported": []}
 ```
 
 The clipboard-based routes answer `503` `unavailable` when the system has no clipboard. `404` with `error` `window_not_found` is specific to routes that paste (`/api/paste`, `/api/close/prompt?paste=1`).
+
+### Review and activity routes
+
+The daily review workflow for a Stream Deck plugin or another local client. Details, payloads and privacy rules: [review-context.md](review-context.md) and [activity-events.md](activity-events.md).
+
+| Route | Purpose |
+|---|---|
+| `GET /api/review/context[?date=YYYY-MM-DD]` | Read-only review metadata of a day. Without `date`: the previous working day, with `basis` telling how it was chosen. `400` `invalid` for a bad or future date. |
+| `GET /api/review/prompt[?date=YYYY-MM-DD]` | The review prompt `{"date","basis","chars","clipboard":false,"prompt"}`. No side effects. |
+| `POST /api/review/prompt[?date=...][&clipboard=0]` | The same, copied to the clipboard. |
+| `POST /api/activity/events` | Body `{"events":[...]}`, at most 5,000 events. Unknown fields `400`; too many events or over 1 MiB `413`; `activity.enabled: false` `503`. Response `{"received","inserted","merged","unchanged","out_of_range","unmapped","pruned","warnings"}`. |
+| `GET /api/activity/summary[?date=YYYY-MM-DD\|today\|yesterday]` | Activity summary of a day (default today). |
+| `POST /api/import/preview` | Body as for `POST /api/import`. What an import would store, writing nothing; see [import-fences.md](import-fences.md#preview-dry-run). |
+
+Import the review answer with `POST /api/import/clipboard` or `POST /api/import` (a `stkr-review v1` block).
 
 ### Capture routes
 

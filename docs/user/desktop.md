@@ -78,7 +78,7 @@ The menu:
 | About STKR | Shows the version, the port and whether the app runs the server or uses `stkr serve`. |
 | Quit | Removes the icon and stops the server it runs (within 5 seconds). A `stkr serve` it attached to keeps running. |
 
-Each action shows its result in a notification: a short confirmation, or the error message from the server (for example "no stkr-brief or stkr-close block with valid lines was found").
+Each action shows its result in a notification: a short confirmation, or the error message from the server (for example "no stkr-brief, stkr-close or stkr-review block with valid lines was found").
 
 Use a different data folder for a run:
 

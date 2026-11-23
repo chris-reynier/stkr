@@ -32,6 +32,9 @@ You can also edit the file by hand. Unknown keys are ignored with a warning. Inv
 | `open_notebook_on_switch` | `false` | Open a context's notebook when you switch to it. |
 | `mic_device` | `""` | Microphone name for voice capture. Required on Windows (DirectShow name); empty means the default device on Linux and macOS. See [Capture](capture.md). |
 | `bookmarks.fetch_title` | `true` | Download a bookmarked page (2 s limit, 512 KB) to read its title. `false` keeps the URL as the title and makes no network call. See [Bookmarks](bookmarks.md). |
+| `activity.enabled` | `true` | Accept local activity events (application category, workspace, lock state) from the Stream Deck plugin. `false` answers `503`. See [Daily review](daily-review.md). |
+| `activity.retention_days` | `90` | Days of activity kept (1-3650). Older activity is deleted and refused. |
+| `review.include_workspace_paths` | `false` | Add context work folders and agent workspaces to the review context and prompt. |
 | `desktop.notifications` | `true` | The Windows tray app shows a notification when the close becomes due, an update is found or an agent starts waiting. Results of tray actions are always shown. See [Desktop app](desktop.md). |
 | `desktop.poll_seconds` | `5` | How often the Windows tray app refreshes its icon, menu and panel (2-60 seconds). |
 | `desktop.panel_on_top` | `true` | The Windows panel stays above other windows (the pin). See [Desktop app](desktop.md). |
