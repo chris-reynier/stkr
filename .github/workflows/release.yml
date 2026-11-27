@@ -23,7 +23,7 @@ jobs:
         run: go test ./...
       # GoReleaser builds the programs and archives and creates the release as
       # a draft (see .goreleaser.yaml).
-      - uses: goreleaser/goreleaser-action@v6
+      - uses: goreleaser/goreleaser-action@v7
         with:
           distribution: goreleaser
           version: "~> v2"
