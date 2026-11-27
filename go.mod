@@ -10,7 +10,7 @@ require (
 	github.com/jchv/go-webview2 v0.0.0-20260205173254-56598839c808
 	github.com/modelcontextprotocol/go-sdk v1.8.0
 	github.com/spf13/cobra v1.10.2
-	github.com/spf13/pflag v1.0.9
+	github.com/spf13/pflag v1.1.0
 	golang.org/x/image v0.48.0
 	golang.org/x/sys v0.50.0
 	gopkg.in/yaml.v3 v3.0.1
